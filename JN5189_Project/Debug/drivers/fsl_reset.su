@@ -1,0 +1,5 @@
+../drivers/rom_lowpower.h:475:20:Chip_LOWPOWER_ChipSoftwareReset	16	static
+../drivers/fsl_reset.c:47:6:RESET_SetPeripheralReset	32	static
+../drivers/fsl_reset.c:88:6:RESET_ClearPeripheralReset	32	static
+../drivers/fsl_reset.c:129:6:RESET_PeripheralReset	16	static
+../drivers/fsl_reset.c:143:6:RESET_SystemReset	8	static

@@ -1,0 +1,3 @@
+C:\NXP\mg_workspace\jn5189dk6_lpc_adc_basic\drivers/fsl_iocon.h:143:22:IOCON_PinMuxSet	24	static
+../board/pin_mux.c:38:6:BOARD_InitBootPins	8	static
+../board/pin_mux.c:70:6:BOARD_InitPins	32	static

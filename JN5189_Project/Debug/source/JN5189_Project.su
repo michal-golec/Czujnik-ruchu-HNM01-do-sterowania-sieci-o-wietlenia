@@ -1,0 +1,4 @@
+C:\NXP\mg_workspace\JN5189_Project\drivers/fsl_power.h:260:20:POWER_EnablePD	16	static
+C:\NXP\mg_workspace\JN5189_Project\drivers/fsl_adc.h:435:20:ADC_EnableConvSeqA	16	static
+C:\NXP\mg_workspace\JN5189_Project\drivers/fsl_adc.h:460:20:ADC_DoSoftwareTriggerConvSeqA	16	static
+../source/JN5189_Project.c:15:5:main	56	static

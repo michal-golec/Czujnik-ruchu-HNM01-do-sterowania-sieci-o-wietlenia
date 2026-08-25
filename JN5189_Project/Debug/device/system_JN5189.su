@@ -1,0 +1,12 @@
+C:\NXP\mg_workspace\JN5189_Project\CMSIS/core_cm4.h:1646:22:__NVIC_SetPriorityGrouping	24	static
+../device/system_JN5189.c:105:17:CLOCK_GetXtal32kFreq	16	static
+../device/system_JN5189.c:118:17:CLOCK_GetXtal32MFreq	4	static
+../device/system_JN5189.c:123:17:CLOCK_GetFro32kFreq	16	static
+../device/system_JN5189.c:136:17:CLOCK_GetFro1MFreq	4	static
+../device/system_JN5189.c:141:17:CLOCK_GetFro12MFreq	16	static
+../device/system_JN5189.c:154:17:CLOCK_GetFro32MFreq	16	static
+../device/system_JN5189.c:167:17:CLOCK_GetFro48MFreq	16	static
+../device/system_JN5189.c:180:17:CLOCK_GetOsc32kFreq	16	static
+../device/system_JN5189.c:195:17:CLOCK_GetMainClockRate	16	static
+../device/system_JN5189.c:359:6:SystemInit	16	static
+../device/system_JN5189.c:380:6:SystemCoreClockUpdate	8	static

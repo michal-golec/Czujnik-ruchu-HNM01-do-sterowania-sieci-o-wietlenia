@@ -1,0 +1,6 @@
+C:\NXP\mg_workspace\jn5189dk6_lpc_adc_basic\drivers/fsl_power.h:260:20:POWER_EnablePD	16	static
+C:\NXP\mg_workspace\jn5189dk6_lpc_adc_basic\drivers/fsl_adc.h:435:20:ADC_EnableConvSeqA	16	static
+C:\NXP\mg_workspace\jn5189dk6_lpc_adc_basic\drivers/fsl_adc.h:460:20:ADC_DoSoftwareTriggerConvSeqA	16	static
+../source/fsl_adc_basic.c:43:13:ADC_ClockPower_Configuration	8	static
+../source/fsl_adc_basic.c:59:5:main	8	static
+../source/fsl_adc_basic.c:124:13:ADC_Configuration	40	static
