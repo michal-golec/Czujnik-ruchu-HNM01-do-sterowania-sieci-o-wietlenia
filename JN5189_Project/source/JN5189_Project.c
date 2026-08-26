@@ -15,6 +15,10 @@
 #define ADC_CHANNEL 2
 #define TIMER_BASE CTIMER0
 #define BUF_SIZE 16
+#define MOVEMENT_THRESHOLD 200 // PRÓG
+#define LED_PORT 0
+#define LED_PIN 2
+#define LED_TIME_TICKS 200    // 200 * 10ms = 2 s
 
 volatile uint32_t adcResultValue = 0;
 //volatile uint32_t adcResultValue_old = 0;
@@ -26,6 +30,8 @@ volatile uint8_t bufIndex = 0;               // Wskaźnik "gdzie zapisać nastę
 volatile uint32_t runningSum = 0;            // Suma krocząca
 volatile uint16_t currentMean = 0;           // Wartosc tla
 volatile uint32_t finalVal = 0;
+
+volatile uint16_t ledTimeoutCounter = 0;	//licznik do LED
 
 //FLAGI DIAGNOSTYCZNE
 volatile bool diagTimer = false;
@@ -81,6 +87,12 @@ int main(void) {
     BOARD_InitDebugConsole();
 
 
+    //config LED
+    CLOCK_EnableClock(kCLOCK_Gpio0);
+	gpio_pin_config_t led_config = {kGPIO_DigitalOutput, 0};
+	GPIO_PinInit(GPIO, LED_PORT, LED_PIN, &led_config);
+
+
     //config ADC
     CLOCK_EnableClock(kCLOCK_Adc0);
     POWER_EnablePD(kPDRUNCFG_PD_LDO_ADC_EN);
@@ -91,6 +103,7 @@ int main(void) {
 	configuration.clockDividerNumber = 7;
 	ADC_Init(ADC_BASE, &configuration);
 
+
 	//adc SeqA config
 	adc_conv_seq_config_t adcConvSeqAConfigStruct = {0};
 	adcConvSeqAConfigStruct.channelMask = (1U << ADC_CHANNEL);
@@ -99,6 +112,7 @@ int main(void) {
 	adcConvSeqAConfigStruct.interruptMode = kADC_InterruptForEachSequence;
 	adcConvSeqAConfigStruct.enableSingleStep = false;
 	adcConvSeqAConfigStruct.enableSyncBypass = false;
+
 
 	//save & Seq Start
 	ADC_SetConvSeqAConfig(ADC_BASE, &adcConvSeqAConfigStruct);
@@ -127,25 +141,42 @@ int main(void) {
 //        }
 
     	if (isNewDataReady) {
-			//Odejmuje od sumy najstarsza probke
-			runningSum -= adcBuffer[bufIndex];
+    		//Aktualizacja tla
+			runningSum -= adcBuffer[bufIndex];      // Usun najstarsza
+			adcBuffer[bufIndex] = adcResultValue;   // Zapisz najnowsza
+			runningSum += adcBuffer[bufIndex];      // Dodaj najnowszą do sumy
 
-			// Krok 2: Nadpisz najstarsze miejsce w buforze nowym wynikiem z radaru
-			adcBuffer[bufIndex] = adcResultValue;
+			currentMean = runningSum / BUF_SIZE;    // Wyliczanie tla (sr. aryt.)
 
-			//Dodanie nowej probki
-			runningSum += adcBuffer[bufIndex];
+			//wspolczynnik mad (odchylenie bezwzgledne)
+			uint32_t madSum = 0; //zmienna pomoc
 
-			//Liczenie tla
-			currentMean = runningSum / BUF_SIZE;
+			for (int i = 0; i < BUF_SIZE; i++) {
+				madSum += abs(adcBuffer[i] - currentMean);
+			}
 
-			finalVal = abs(adcResultValue - currentMean);
+			finalVal = madSum/BUF_SIZE;
 
 			//inkrementacja indeksu bufora (reszta z dzielenia przez BUF_SIZE)
 			bufIndex = (bufIndex + 1) % BUF_SIZE;
 
-			// Tymczasowo wypisujemy nasze tło, żeby zobaczyć, czy działa
+
 			PRINTF("%u\r\n", finalVal);
+
+			//Sprawdzenie czy ruch przekroczyl prog
+			if (finalVal > MOVEMENT_THRESHOLD) {
+				GPIO_PinWrite(GPIO, LED_PORT, LED_PIN, 1);
+				ledTimeoutCounter = LED_TIME_TICKS;
+			}
+
+			//zgadzenie diody
+			if (ledTimeoutCounter > 0) {
+				ledTimeoutCounter--; 	//Odejmuje 1 co 10 ms
+
+				if (ledTimeoutCounter == 0) {
+					GPIO_PinWrite(GPIO, LED_PORT, LED_PIN, 0);
+				}
+			}
 
 			isNewDataReady = false;
 		}
