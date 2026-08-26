@@ -7,17 +7,25 @@
 #include "fsl_gpio.h"
 #include "fsl_adc.h"
 #include "fsl_ctimer.h"
+#include <stdlib.h>
 
 
 //Def global
 #define ADC_BASE ADC0
 #define ADC_CHANNEL 2
 #define TIMER_BASE CTIMER0
+#define BUF_SIZE 16
 
 volatile uint32_t adcResultValue = 0;
-volatile uint32_t adcResultValue_old = 0;
-volatile uint32_t diffVal = 0;
+//volatile uint32_t adcResultValue_old = 0;
+//volatile uint32_t diffVal = 0;
 volatile bool isNewDataReady = false; //flaga
+
+volatile uint16_t adcBuffer[BUF_SIZE] = {0}; // Pamięć
+volatile uint8_t bufIndex = 0;               // Wskaźnik "gdzie zapisać następną próbkę"
+volatile uint32_t runningSum = 0;            // Suma krocząca
+volatile uint16_t currentMean = 0;           // Wartosc tla
+volatile uint32_t finalVal = 0;
 
 //FLAGI DIAGNOSTYCZNE
 volatile bool diagTimer = false;
@@ -118,13 +126,37 @@ int main(void) {
 //            diagADC = false;
 //        }
 
-		if (isNewDataReady) {
-			diffVal = adcResultValue - adcResultValue_old;
-			PRINTF("%d\r\n", diffVal);
+    	if (isNewDataReady) {
+			//Odejmuje od sumy najstarsza probke
+			runningSum -= adcBuffer[bufIndex];
 
-			isNewDataReady = false; //clearing flag
-			adcResultValue_old = adcResultValue;
+			// Krok 2: Nadpisz najstarsze miejsce w buforze nowym wynikiem z radaru
+			adcBuffer[bufIndex] = adcResultValue;
+
+			//Dodanie nowej probki
+			runningSum += adcBuffer[bufIndex];
+
+			//Liczenie tla
+			currentMean = runningSum / BUF_SIZE;
+
+			finalVal = abs(adcResultValue - currentMean);
+
+			//inkrementacja indeksu bufora (reszta z dzielenia przez BUF_SIZE)
+			bufIndex = (bufIndex + 1) % BUF_SIZE;
+
+			// Tymczasowo wypisujemy nasze tło, żeby zobaczyć, czy działa
+			PRINTF("%u\r\n", finalVal);
+
+			isNewDataReady = false;
 		}
+
+//		if (isNewDataReady) {
+//			diffVal = adcResultValue - adcResultValue_old;
+//			PRINTF("%d\r\n", diffVal);
+//
+//			isNewDataReady = false; //clearing flag
+//			adcResultValue_old = adcResultValue;
+//		}
 	}
 	return 0;
 }
