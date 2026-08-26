@@ -6,7 +6,7 @@
  * Generated linker script file for JN5189
  * Created from linkscript.ldt by FMCreateLinkLibraries
  * Using Freemarker v2.3.30
- * MCUXpresso IDE v24.12 [Build 148] [2025-01-10] on 25 sie 2026, 16:12:20
+ * MCUXpresso IDE v24.12 [Build 148] [2025-01-10] on 26 sie 2026, 11:44:00
  */
 
 INCLUDE "JN5189_Project_Debug_library.ld"

@@ -6,11 +6,65 @@
 #include "fsl_debug_console.h"
 #include "fsl_gpio.h"
 #include "fsl_adc.h"
+#include "fsl_ctimer.h"
+
 
 //Def global
-#define BAZOWY_ADC ADC0
-#define KANAL_ADC 2
-#define PROG_CZULOSCI 150
+#define ADC_BASE ADC0
+#define ADC_CHANNEL 2
+#define TIMER_BASE CTIMER0
+
+volatile uint32_t adcResultValue = 0;
+volatile uint32_t adcResultValue_old = 0;
+volatile uint32_t diffVal = 0;
+volatile bool isNewDataReady = false; //flaga
+
+//FLAGI DIAGNOSTYCZNE
+volatile bool diagTimer = false;
+volatile bool diagADC = false;
+
+
+void ADC0_SEQA_IRQHandler(void) {
+	ADC_ClearStatusFlags(ADC_BASE, kADC_ConvSeqAInterruptFlag);
+	diagADC = true; // Zgłaszamy, że przerwanie ADC w ogóle ożyło
+
+	adc_result_info_t adcResultInfoStruct;
+
+    if (ADC_GetChannelConversionResult(ADC_BASE, ADC_CHANNEL, &adcResultInfoStruct)) {
+        adcResultValue = adcResultInfoStruct.result;
+        isNewDataReady = true;
+    }
+}
+
+void CTIMER0_IRQHandler(void) {
+    CTIMER_ClearStatusFlags(TIMER_BASE, kCTIMER_Match3Flag);
+
+    diagTimer = true; // Zgłaszamy, że timer tyka
+
+    ADC_DoSoftwareTriggerConvSeqA(ADC_BASE);
+}
+
+void Init_Hardware_Timer(void) {
+    // Enable clock and power
+    CLOCK_EnableClock(kCLOCK_Timer0);
+
+    ctimer_config_t timerConfig;
+    CTIMER_GetDefaultConfig(&timerConfig);
+    CTIMER_Init(TIMER_BASE, &timerConfig);
+
+    //Match channel config
+    ctimer_match_config_t matchConfig;
+    matchConfig.enableCounterReset = true;          // Reset counter on match
+    matchConfig.enableCounterStop = false;
+    matchConfig.matchValue = SystemCoreClock / 100; // Trigger threshold
+    matchConfig.outControl = kCTIMER_Output_NoAction;
+    matchConfig.outPinInitState = false;
+    matchConfig.enableInterrupt = true;
+
+    CTIMER_SetupMatch(TIMER_BASE, kCTIMER_Match_3, &matchConfig);
+    CTIMER_StartTimer(TIMER_BASE);
+}
+
 
 int main(void) {
     BOARD_InitBootPins();
@@ -19,80 +73,58 @@ int main(void) {
     BOARD_InitDebugConsole();
 
 
-    //zmiana portu
     //config ADC
     CLOCK_EnableClock(kCLOCK_Adc0);
     POWER_EnablePD(kPDRUNCFG_PD_LDO_ADC_EN);
 	PMC->PDRUNCFG |= PMC_PDRUNCFG_ENA_LDO_ADC_MASK;
 
-	// 2. (Opcjonalnie, ale mocno zalecane) Przeprowadź kalibrację
-	// Uwaga: W zależności od MCU może to wymagać podania częstotliwości jako drugiego argumentu
-
-//#if !(defined(FSL_FEATURE_ADC_HAS_NO_CALIB_FUNC) && FSL_FEATURE_ADC_HAS_NO_CALIB_FUNC)
-//#if defined(FSL_FEATURE_ADC_HAS_CALIB_REG) && FSL_FEATURE_ADC_HAS_CALIB_REG
-//    /* Calibration after power up. */
-//    if (ADC_DoSelfCalibration(DEMO_ADC_BASE))
-//#else
-//    uint32_t frequency;
-//#if defined(SYSCON_ADCCLKDIV_DIV_MASK)
-//    frequency = CLOCK_GetFreq(DEMO_ADC_CLOCK_SOURCE) / CLOCK_GetClkDivider(kCLOCK_DivAdcClk);
-//#else
-//    frequency = CLOCK_GetFreq(DEMO_ADC_CLOCK_SOURCE);
-//#endif /* SYSCON_ADCCLKDIV_DIV_MASK */
-//    /* Calibration after power up. */
-//    if (ADC_DoSelfCalibration(DEMO_ADC_BASE, frequency))
-//#endif /* FSL_FEATURE_ADC_HAS_CALIB_REG */
-//    {
-//        PRINTF("ADC_DoSelfCalibration() Done.\r\n");
-//    }
-//    else
-//    {
-//        PRINTF("ADC_DoSelfCalibration() Failed.\r\n");
-//    }
-//#endif /* FSL_FEATURE_ADC_HAS_NO_CALIB_FUNC */
-
-
 	adc_config_t configuration;
 	ADC_GetDefaultConfig(&configuration);
 	configuration.clockDividerNumber = 7;
-	ADC_Init(BAZOWY_ADC, &configuration);
+	ADC_Init(ADC_BASE, &configuration);
 
-	// 4. Skonfiguruj sekwencję - ZWRÓĆ UWAGĘ NA "= {0}" (zeruje całą strukturę!)
+	//adc SeqA config
 	adc_conv_seq_config_t adcConvSeqAConfigStruct = {0};
-	adcConvSeqAConfigStruct.channelMask = (1U << KANAL_ADC);
-	adcConvSeqAConfigStruct.triggerMask = 0U; // 0 -- wyzwalanie ręczne
+	adcConvSeqAConfigStruct.channelMask = (1U << ADC_CHANNEL);
+	adcConvSeqAConfigStruct.triggerMask = 0U; //->software trigger
 	adcConvSeqAConfigStruct.triggerPolarity = kADC_TriggerPolarityPositiveEdge;
 	adcConvSeqAConfigStruct.interruptMode = kADC_InterruptForEachSequence;
 	adcConvSeqAConfigStruct.enableSingleStep = false;
 	adcConvSeqAConfigStruct.enableSyncBypass = false;
-        ///////////////////////////////////
 
 	//save & Seq Start
-	ADC_SetConvSeqAConfig(BAZOWY_ADC, &adcConvSeqAConfigStruct);
-	ADC_EnableConvSeqA(BAZOWY_ADC, true);
+	ADC_SetConvSeqAConfig(ADC_BASE, &adcConvSeqAConfigStruct);
+	ADC_EnableConvSeqA(ADC_BASE, true);
+	ADC_EnableInterrupts(ADC_BASE, kADC_ConvSeqAInterruptEnable);
 
+	EnableIRQ(ADC0_SEQA_IRQn);
+	EnableIRQ(CTIMER0_IRQn);
+	Init_Hardware_Timer();
 
-
-    //def
-//    uint32_t MW_SENSOR;
-    adc_result_info_t adcResultInfoStruct;
+	//Global interrupt enable
+	__enable_irq();
 
 
     while(1) {
+//    	// Diagnostyka Timera
+//        if (diagTimer) {
+//            PRINTF("TIMER ZYJE!\r\n");
+//            diagTimer = false;
+//        }
+//
+//        // Diagnostyka ADC
+//        if (diagADC) {
+//            PRINTF("ADC ZYJE!\r\n");
+//            diagADC = false;
+//        }
 
-    	//narazie sekwencja softwarowa
-    	//TODO: wyzwalanie normalnie z timera
-    	ADC_DoSoftwareTriggerConvSeqA(BAZOWY_ADC);
+		if (isNewDataReady) {
+			diffVal = adcResultValue - adcResultValue_old;
+			PRINTF("%d\r\n", diffVal);
 
-    	// W while() zeby nie bylo opoznien pomiaru
-    	while (!ADC_GetChannelConversionResult(BAZOWY_ADC, KANAL_ADC, &adcResultInfoStruct)) {
-    	        }
-
-    	PRINTF("Wartosc ADC: %d\r\n", adcResultInfoStruct.result);
-
-//    	MW_SENSOR = GPIO_PinRead(GPIO, 0, 16);
-//    	PRINTF("%d\r\n", MW_SENSOR);
-
-    }
-    return 0;
+			isNewDataReady = false; //clearing flag
+			adcResultValue_old = adcResultValue;
+		}
+	}
+	return 0;
 }

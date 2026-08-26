@@ -1,4 +1,4 @@
-C:\NXP\mg_workspace\JN5189_Project\CMSIS/core_cm4.h:1677:22:__NVIC_EnableIRQ	16	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project\CMSIS/core_cm4.h:1677:22:__NVIC_EnableIRQ	16	static
 ../drivers/fsl_common.h:440:28:EnableIRQ	16	static
 ../drivers/fsl_common.h:508:28:DisableGlobalIRQ	16	static
 ../drivers/fsl_common.h:539:24:EnableGlobalIRQ	24	static

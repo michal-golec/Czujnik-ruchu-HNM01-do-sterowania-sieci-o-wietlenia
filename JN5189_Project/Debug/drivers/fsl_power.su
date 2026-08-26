@@ -1,7 +1,7 @@
-C:\NXP\mg_workspace\JN5189_Project\CMSIS/core_cm4.h:1677:22:__NVIC_EnableIRQ	16	static
-C:\NXP\mg_workspace\JN5189_Project\CMSIS/core_cm4.h:1713:22:__NVIC_DisableIRQ	16	static
-C:\NXP\mg_workspace\JN5189_Project\drivers/rom_pmc.h:55:24:pmc_reset_get_cause	16	static
-C:\NXP\mg_workspace\JN5189_Project\drivers/rom_pmc.h:70:20:pmc_reset_clear_cause	24	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project\CMSIS/core_cm4.h:1677:22:__NVIC_EnableIRQ	16	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project\CMSIS/core_cm4.h:1713:22:__NVIC_DisableIRQ	16	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project\drivers/rom_pmc.h:55:24:pmc_reset_get_cause	16	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project\drivers/rom_pmc.h:70:20:pmc_reset_clear_cause	24	static
 ../drivers/rom_lowpower.h:432:20:Chip_LOWPOWER_GetSystemVoltages	24	static
 ../drivers/rom_lowpower.h:445:20:Chip_LOWPOWER_SetSystemVoltages	24	static
 ../drivers/rom_lowpower.h:458:20:Chip_LOWPOWER_SetLowPowerMode	24	static

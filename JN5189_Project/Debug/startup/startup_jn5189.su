@@ -1,4 +1,4 @@
-C:\NXP\mg_workspace\JN5189_Project\drivers/rom_api.h:147:24:BOOT_GetStartPowerMode	8	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project\drivers/rom_api.h:147:24:BOOT_GetStartPowerMode	8	static
 ../startup/startup_jn5189.c:345:6:data_init	4	static
 ../startup/startup_jn5189.c:354:6:bss_init	0	static
 ../startup/startup_jn5189.c:379:6:ResetISR	0	static

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<chips chipVendor="NXP" family="JN518x">
+   <chip name="JN5189" flash=""/>
+</chips>

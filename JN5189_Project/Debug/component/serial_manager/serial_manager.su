@@ -1,5 +1,5 @@
-C:\NXP\mg_workspace\JN5189_Project\drivers/fsl_common.h:508:28:DisableGlobalIRQ	16	static
-C:\NXP\mg_workspace\JN5189_Project\drivers/fsl_common.h:539:24:EnableGlobalIRQ	24	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project\drivers/fsl_common.h:508:28:DisableGlobalIRQ	16	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project\drivers/fsl_common.h:539:24:EnableGlobalIRQ	24	static
 ../component/serial_manager/serial_manager.c:267:32:SerialManager_StartWriting	32	static
 ../component/serial_manager/serial_manager.c:306:32:SerialManager_StartReading	32	static
 ../component/serial_manager/serial_manager.c:777:32:SerialManager_Write	32	static
