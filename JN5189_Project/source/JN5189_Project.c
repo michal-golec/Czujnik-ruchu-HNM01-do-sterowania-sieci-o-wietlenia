@@ -15,10 +15,11 @@
 #define ADC_CHANNEL 2
 #define TIMER_BASE CTIMER0
 #define BUF_SIZE 16
-#define MOVEMENT_THRESHOLD 100 // PRÓG TODO: Aktywna zmiana wzgledem tla
+//#define MOVEMENT_THRESHOLD 100 // PRÓG TODO: Aktywna zmiana wzgledem tla
 #define LED_PORT 0
 #define LED_PIN 2
 #define LED_TIME_TICKS 200    // 200 * 10ms = 2 s
+#define SENSITIVITY_MARGIN 60
 
 volatile uint32_t adcResultValue = 0;
 //volatile uint32_t adcResultValue_old = 0;
@@ -29,6 +30,7 @@ volatile uint16_t adcBuffer[BUF_SIZE] = {0}; // Pamięć
 volatile uint8_t bufIndex = 0;               // Wskaźnik "gdzie zapisać następną próbkę"
 volatile uint32_t runningSum = 0;            // Suma krocząca
 volatile uint16_t currentMean = 0;           // Wartosc tla
+volatile uint32_t noiseFloor = 0;		// Wartosc tla po filtracji
 volatile uint32_t finalVal = 0;
 
 volatile uint16_t ledTimeoutCounter = 0;	//licznik do LED
@@ -128,20 +130,8 @@ int main(void) {
 
 
     while(1) {
-//    	// Diagnostyka Timera
-//        if (diagTimer) {
-//            PRINTF("TIMER ZYJE!\r\n");
-//            diagTimer = false;
-//        }
-//
-//        // Diagnostyka ADC
-//        if (diagADC) {
-//            PRINTF("ADC ZYJE!\r\n");
-//            diagADC = false;
-//        }
-
     	if (isNewDataReady) {
-    		//Aktualizacja tla
+			//Aktualizacja tla
 			runningSum -= adcBuffer[bufIndex];      // Usun najstarsza
 			adcBuffer[bufIndex] = adcResultValue;   // Zapisz najnowsza
 			runningSum += adcBuffer[bufIndex];      // Dodaj najnowszą do sumy
@@ -161,33 +151,58 @@ int main(void) {
 			bufIndex = (bufIndex + 1) % BUF_SIZE;
 
 
-			PRINTF("%u\r\n", finalVal);
 
-			//Sprawdzenie czy ruch przekroczyl prog
-			if (finalVal > MOVEMENT_THRESHOLD) {
+			// OBLICZANIE SZUMU
+			if (ledTimeoutCounter == 0) {
+				// Szybki, bezułamkowy filtr dolnoprzepustowy (Exponential Moving Average).
+				// Mnożymy i dzielimy przez potęgi 2 (16), co jest błyskawiczne dla procesora.
+				// Utrzymuje on 93% starego szumu i wpuszcza 7% nowej wartości.
+				noiseFloor = ((noiseFloor * 15) + finalVal) / 16;
+			}
+
+			// 2. Wyliczamy nasz dynamiczny próg detekcji
+			uint32_t dynamicThreshold = noiseFloor + SENSITIVITY_MARGIN;
+
+			PRINTF("Sygnal: %u | Szum: %u | Prog: %u\r\n", finalVal, noiseFloor, dynamicThreshold);
+
+			if (finalVal > dynamicThreshold) {
+				// Wykryto ruch - włączamy LED i "zamrażamy" uczenie się szumu
 				GPIO_PinWrite(GPIO, LED_PORT, LED_PIN, 1);
 				ledTimeoutCounter = LED_TIME_TICKS;
 			}
 
-			//zgadzenie diody
 			if (ledTimeoutCounter > 0) {
-				ledTimeoutCounter--; 	//Odejmuje 1 co 10 ms
+				ledTimeoutCounter--;
 
 				if (ledTimeoutCounter == 0) {
+					// Koniec czasu - gasimy diodę, od teraz algorytm znów uczy się szumu
 					GPIO_PinWrite(GPIO, LED_PORT, LED_PIN, 0);
 				}
 			}
 
+
+//
+//
+//			PRINTF("%u\r\n", finalVal);
+//
+//			//Sprawdzenie czy ruch przekroczyl prog
+//			if (finalVal > MOVEMENT_THRESHOLD) {
+//				GPIO_PinWrite(GPIO, LED_PORT, LED_PIN, 1);
+//				ledTimeoutCounter = LED_TIME_TICKS;
+//			}
+//
+//			//zgadzenie diody
+//			if (ledTimeoutCounter > 0) {
+//				ledTimeoutCounter--; 	//Odejmuje 1 co 10 ms
+//
+//				if (ledTimeoutCounter == 0) {
+//					GPIO_PinWrite(GPIO, LED_PORT, LED_PIN, 0);
+//				}
+//			}
+//
 			isNewDataReady = false;
 		}
 
-//		if (isNewDataReady) {
-//			diffVal = adcResultValue - adcResultValue_old;
-//			PRINTF("%d\r\n", diffVal);
-//
-//			isNewDataReady = false; //clearing flag
-//			adcResultValue_old = adcResultValue;
-//		}
 	}
 	return 0;
 }

@@ -8,7 +8,7 @@ C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_P
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project\drivers/fsl_adc.h:755:20:ADC_ClearStatusFlags	16	static
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project\drivers/fsl_ctimer.h:475:20:CTIMER_ClearStatusFlags	16	static
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project\drivers/fsl_ctimer.h:492:20:CTIMER_StartTimer	16	static
-../source/JN5189_Project.c:41:6:ADC0_SEQA_IRQHandler	24	static
-../source/JN5189_Project.c:53:6:CTIMER0_IRQHandler	8	static
-../source/JN5189_Project.c:61:6:Init_Hardware_Timer	32	static
-../source/JN5189_Project.c:83:5:main	48	static
+../source/JN5189_Project.c:43:6:ADC0_SEQA_IRQHandler	24	static
+../source/JN5189_Project.c:55:6:CTIMER0_IRQHandler	8	static
+../source/JN5189_Project.c:63:6:Init_Hardware_Timer	32	static
+../source/JN5189_Project.c:85:5:main	56	static
