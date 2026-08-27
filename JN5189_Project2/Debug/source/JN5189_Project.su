@@ -1,0 +1,9 @@
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project2\CMSIS/core_cm4.h:1677:22:__NVIC_EnableIRQ	16	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project2\drivers/fsl_common.h:440:28:EnableIRQ	16	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project2\drivers/fsl_power.h:260:20:POWER_EnablePD	16	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project2\drivers/fsl_adc.h:435:20:ADC_EnableConvSeqA	16	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project2\drivers/fsl_adc.h:476:20:ADC_EnableConvSeqABurstMode	16	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project2\drivers/fsl_adc.h:690:20:ADC_EnableInterrupts	16	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project2\drivers/fsl_adc.h:755:20:ADC_ClearStatusFlags	16	static
+../source/JN5189_Project.c:29:6:ADC0_SEQA_IRQHandler	24	static
+../source/JN5189_Project.c:44:5:main	48	static

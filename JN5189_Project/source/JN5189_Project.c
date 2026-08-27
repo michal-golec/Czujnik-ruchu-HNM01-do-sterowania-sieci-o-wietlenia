@@ -15,7 +15,7 @@
 #define ADC_CHANNEL 2
 #define TIMER_BASE CTIMER0
 #define BUF_SIZE 16
-#define MOVEMENT_THRESHOLD 200 // PRÓG
+#define MOVEMENT_THRESHOLD 100 // PRÓG TODO: Aktywna zmiana wzgledem tla
 #define LED_PORT 0
 #define LED_PIN 2
 #define LED_TIME_TICKS 200    // 200 * 10ms = 2 s
@@ -40,7 +40,7 @@ volatile bool diagADC = false;
 
 void ADC0_SEQA_IRQHandler(void) {
 	ADC_ClearStatusFlags(ADC_BASE, kADC_ConvSeqAInterruptFlag);
-	diagADC = true; // Zgłaszamy, że przerwanie ADC w ogóle ożyło
+	diagADC = true; // Zglaszanie ze przerwanie ADC dziala
 
 	adc_result_info_t adcResultInfoStruct;
 
@@ -53,7 +53,7 @@ void ADC0_SEQA_IRQHandler(void) {
 void CTIMER0_IRQHandler(void) {
     CTIMER_ClearStatusFlags(TIMER_BASE, kCTIMER_Match3Flag);
 
-    diagTimer = true; // Zgłaszamy, że timer tyka
+    diagTimer = true; // Zglaszanie ze timer tyka
 
     ADC_DoSoftwareTriggerConvSeqA(ADC_BASE);
 }
