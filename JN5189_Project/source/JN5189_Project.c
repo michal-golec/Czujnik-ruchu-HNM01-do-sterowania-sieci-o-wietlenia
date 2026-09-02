@@ -17,21 +17,20 @@
 #define BUF_SIZE 16
 //#define MOVEMENT_THRESHOLD 100 // PRÓG TODO: Aktywna zmiana wzgledem tla
 #define LED_PORT 0
-#define LED_PIN 2
+#define LED_PIN 19
 #define LED_TIME_TICKS 200    // 200 * 10ms = 2 s
 #define SENSITIVITY_MARGIN 60
 
 volatile uint32_t adcResultValue = 0;
-//volatile uint32_t adcResultValue_old = 0;
-//volatile uint32_t diffVal = 0;
 volatile bool isNewDataReady = false; //flaga
 
 volatile uint16_t adcBuffer[BUF_SIZE] = {0}; // Pamięć
-volatile uint8_t bufIndex = 0;               // Wskaźnik "gdzie zapisać następną próbkę"
-volatile uint32_t runningSum = 0;            // Suma krocząca
-volatile uint16_t currentMean = 0;           // Wartosc tla
-volatile uint32_t noiseFloor = 0;		// Wartosc tla po filtracji
-volatile uint32_t finalVal = 0;
+uint8_t bufIndex = 0;               // Wskaznik bufora
+uint32_t runningSum = 0;            // Suma krocząca
+uint16_t currentMean = 0;           // Wartosc tla* (prosta)
+uint32_t noiseFloor = 0;		// Wartosc tla po filtracji
+uint32_t finalVal = 0;
+uint32_t state = 0;
 
 volatile uint16_t ledTimeoutCounter = 0;	//licznik do LED
 
@@ -97,7 +96,7 @@ int main(void) {
 
     //config ADC
     CLOCK_EnableClock(kCLOCK_Adc0);
-    POWER_EnablePD(kPDRUNCFG_PD_LDO_ADC_EN);
+//    POWER_DisablePD(kPDRUNCFG_PD_LDO_ADC_EN);
 	PMC->PDRUNCFG |= PMC_PDRUNCFG_ENA_LDO_ADC_MASK;
 
 	adc_config_t configuration;
@@ -136,13 +135,13 @@ int main(void) {
 			adcBuffer[bufIndex] = adcResultValue;   // Zapisz najnowsza
 			runningSum += adcBuffer[bufIndex];      // Dodaj najnowszą do sumy
 
-			currentMean = runningSum / BUF_SIZE;    // Wyliczanie tla (sr. aryt.)
+			currentMean = runningSum / BUF_SIZE;    // Wyliczanie tla (śr. arytmetyczna)
 
 			//wspolczynnik mad (odchylenie bezwzgledne)
 			uint32_t madSum = 0; //zmienna pomoc
 
 			for (int i = 0; i < BUF_SIZE; i++) {
-				madSum += abs(adcBuffer[i] - currentMean);
+				madSum += abs((int32_t)adcBuffer[i] - (int32_t)currentMean);	//zmiana typow zeby roznica sie zgadzala
 			}
 
 			finalVal = madSum/BUF_SIZE;
@@ -152,56 +151,37 @@ int main(void) {
 
 
 
-			// OBLICZANIE SZUMU
+			//obliczanie szumu tla
 			if (ledTimeoutCounter == 0) {
-				// Szybki, bezułamkowy filtr dolnoprzepustowy (Exponential Moving Average).
-				// Mnożymy i dzielimy przez potęgi 2 (16), co jest błyskawiczne dla procesora.
-				// Utrzymuje on 93% starego szumu i wpuszcza 7% nowej wartości.
+				// softwarowy filr dolnoprzepustowy
 				noiseFloor = ((noiseFloor * 15) + finalVal) / 16;
 			}
 
-			// 2. Wyliczamy nasz dynamiczny próg detekcji
+			//wyliczanie dynamicznego progu
 			uint32_t dynamicThreshold = noiseFloor + SENSITIVITY_MARGIN;
 
-			PRINTF("Sygnal: %u | Szum: %u | Prog: %u\r\n", finalVal, noiseFloor, dynamicThreshold);
+			PRINTF("Sygnal: %u | Szum: %u | Prog: %u | Stan: %u\r\n", finalVal, noiseFloor, dynamicThreshold, state);
 
 			if (finalVal > dynamicThreshold) {
-				// Wykryto ruch - włączamy LED i "zamrażamy" uczenie się szumu
+				//wykryto ruch -> włączenie LED, zatrzymujemy obliczanie szumu
 				GPIO_PinWrite(GPIO, LED_PORT, LED_PIN, 1);
+				state = 1;
 				ledTimeoutCounter = LED_TIME_TICKS;
 			}
 
 			if (ledTimeoutCounter > 0) {
 				ledTimeoutCounter--;
 
-				if (ledTimeoutCounter == 0) {
-					// Koniec czasu - gasimy diodę, od teraz algorytm znów uczy się szumu
+				if (ledTimeoutCounter == 0 && finalVal < dynamicThreshold) {
+					//minął delay -> gasimy LED, algorytm znów oblicza szum
 					GPIO_PinWrite(GPIO, LED_PORT, LED_PIN, 0);
+					state = 0;
 				}
 			}
 
-
-//
-//
-//			PRINTF("%u\r\n", finalVal);
-//
-//			//Sprawdzenie czy ruch przekroczyl prog
-//			if (finalVal > MOVEMENT_THRESHOLD) {
-//				GPIO_PinWrite(GPIO, LED_PORT, LED_PIN, 1);
-//				ledTimeoutCounter = LED_TIME_TICKS;
-//			}
-//
-//			//zgadzenie diody
-//			if (ledTimeoutCounter > 0) {
-//				ledTimeoutCounter--; 	//Odejmuje 1 co 10 ms
-//
-//				if (ledTimeoutCounter == 0) {
-//					GPIO_PinWrite(GPIO, LED_PORT, LED_PIN, 0);
-//				}
-//			}
-//
 			isNewDataReady = false;
 		}
+    	__WFI(); //uspienie az do przerwania CTIMER
 
 	}
 	return 0;
