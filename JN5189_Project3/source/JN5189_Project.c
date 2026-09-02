@@ -16,15 +16,41 @@
 #define LED_PORT 0
 #define LED_PIN 19
 #define LED_TIMEOUT 2000    // 2000ms
-#define SENSITIVITY_MARGIN 100
+#define SENSITIVITY_MARGIN 200
 #define STARTUP_THRESHOLD 500	//próg przełączania
+#define PROCESS_INTERVAL_MS 5 // Czas w milisekundach, co ile pobieramy dane z ADC (np. 5 ms)
+#define OFF_TO_ON_DELAY 1000
+/*//////////////////////////////////////////////////////////////////////////////////
+TODO: dobrać mniejsze SENSITIVITY_MARGIN
+
+TODO: dobrać dobre filtry
+Jeśli wybierzesz okno 1 ms lub 2 ms: Zostaw obecny wzór (stała 256)
+noiseFloor = ((noiseFloor * 255) + finalVal) / 256;
+
+Jeśli wybierzesz okno 4 ms lub 5 ms: Użyj stałej 64
+noiseFloor = ((noiseFloor * 63) + finalVal) / 64;
+
+Jeśli wybierzesz okno 10 ms: Użyj stałej 32
+noiseFloor = ((noiseFloor * 31) + finalVal) / 32;
+
+Jeśli wybierzesz okno 20 ms: Użyj stałej 16
+noiseFloor = ((noiseFloor * 15) + finalVal) / 16;
+
+TODO: zapobiec mruganiu, delay przy zapalaniu ponownym po zgaszeniu
+TODO: pwm
+///////////////////////////////////////////////////////////////////////////////////*/
+
+
+
+
+
+
 
 // zmienne globalne
 volatile uint32_t adcResultValue = 0;
 volatile uint32_t maxValue = 0;
 volatile uint32_t minValue = 0xFFFFFFFF;
 uint32_t finalVal = 0;
-volatile bool processDataFlag = false;
 volatile uint32_t state = 0;
 
 volatile uint16_t ledTimeoutMs = 0;	//licznik do LED
@@ -32,9 +58,21 @@ uint32_t printDelayCounter = 0;
 
 uint32_t noiseFloor = STARTUP_THRESHOLD - SENSITIVITY_MARGIN;
 
+//zmienne do filtru w przerwaniu adc
+volatile uint32_t filteredAdcValue = 0;
+volatile bool isFirstSample = true;
+
+//zmienne do timerów
+volatile uint16_t processDataTimer = PROCESS_INTERVAL_MS;
+volatile bool processDataFlag = false;
+volatile uint16_t OffDelayTimer = PROCESS_INTERVAL_MS;
+volatile bool OffDelayFlag = false;
 
 //przewanie do sterowania LED
 void SysTick_Handler(void) {
+	// ===================================================
+	// TIMER 1: Sterowanie czasem świecenia LED
+	// ===================================================
     if (ledTimeoutMs > 0) {
         ledTimeoutMs--;
         if (ledTimeoutMs == 0) {
@@ -42,7 +80,29 @@ void SysTick_Handler(void) {
             state = 0;
         }
     }
-    processDataFlag = true;
+
+
+    // ===================================================
+	// TIMER 2: Sterowanie częstością przetwarzania ADC
+	// ===================================================
+	if (processDataTimer > 0) {
+		processDataTimer--;
+		if (processDataTimer == 0) {
+			processDataFlag = true;                     // Wyzwalamy obliczenia w pętli while
+			processDataTimer = PROCESS_INTERVAL_MS;     // Przeładowanie licznika (od nowa)
+		}
+	}
+
+	// ===================================================
+	// TIMER 3: Delay przed ponownym zapaleniem
+	// ===================================================
+	if (OffDelayTimer > 0) {
+		OffDelayTimer--;
+		if (OffDelayTimer == 0) {
+			OffDelayFlag = true;
+			}
+	}
+
 }
 
 
@@ -56,11 +116,23 @@ void ADC0_SEQA_IRQHandler(void) {
 
     	adcResultValue = adcResultInfoStruct.result;
 
-    	if (adcResultValue > maxValue){
-			maxValue = adcResultValue;
+    	// Inicjalizacja filtru pierwszą próbką z ADC
+		if (isFirstSample) {
+			filteredAdcValue = adcResultValue;
+			isFirstSample = false;
+		} else {
+			// Sprzętowy filtr dolnoprzepustowy (EMA ze stałą K=8).
+			// Zapis >> 3 to przesunięcie bitowe, działające jak dzielenie przez 8,
+			// ale wielokrotnie szybsze dla procesora.
+			filteredAdcValue = ((filteredAdcValue * 7) + adcResultValue) >> 3;
 		}
-		if (adcResultValue < minValue){
-			minValue = adcResultValue;
+
+
+    	if (filteredAdcValue > maxValue){
+			maxValue = filteredAdcValue;
+		}
+		if (filteredAdcValue < minValue){
+			minValue = filteredAdcValue;
 		}
     }
 
@@ -142,14 +214,16 @@ int main(void) {
 
 			if (state == 0) {
 				// STAN CISZY
-				noiseFloor = ((noiseFloor * 255) + finalVal) / 256;
+				noiseFloor = ((noiseFloor * 63) + finalVal) / 64;
 
-				if (finalVal > dynamicThreshold) {
+				if (finalVal > dynamicThreshold && OffDelayFlag) {
 					GPIO_PinWrite(GPIO, LED_PORT, LED_PIN, 1);
 					state = 1;
+					OffDelayTimer = OFF_TO_ON_DELAY;
 					ledTimeoutMs = LED_TIMEOUT;
 				}
 			}
+			//TODO: tego else chyba usunąć, bo jest bez sensu, koliduje z timerem offdelay
 			else {
 				// STAN RUCHU
 				if (finalVal > dynamicThreshold) {
