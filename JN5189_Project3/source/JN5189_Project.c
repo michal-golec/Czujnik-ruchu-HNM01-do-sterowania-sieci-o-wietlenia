@@ -16,10 +16,12 @@
 #define LED_PORT 0
 #define LED_PIN 19
 #define LED_TIMEOUT 2000    // 2000ms
-#define SENSITIVITY_MARGIN 200
+#define SENSITIVITY_MARGIN 80
 #define STARTUP_THRESHOLD 500	//próg przełączania
-#define PROCESS_INTERVAL_MS 5 // Czas w milisekundach, co ile pobieramy dane z ADC (np. 5 ms)
-#define OFF_TO_ON_DELAY 1000
+#define PROCESS_INTERVAL_MS 10 // Czas w milisekundach, co ile pobieramy dane z ADC (np. 5 ms)
+#define OFF_TO_ON_DELAY 1500
+
+
 /*//////////////////////////////////////////////////////////////////////////////////
 TODO: dobrać mniejsze SENSITIVITY_MARGIN
 
@@ -65,8 +67,8 @@ volatile bool isFirstSample = true;
 //zmienne do timerów
 volatile uint16_t processDataTimer = PROCESS_INTERVAL_MS;
 volatile bool processDataFlag = false;
-volatile uint16_t OffDelayTimer = PROCESS_INTERVAL_MS;
-volatile bool OffDelayFlag = false;
+volatile uint16_t OffDelayTimer = 0;
+
 
 //przewanie do sterowania LED
 void SysTick_Handler(void) {
@@ -78,6 +80,7 @@ void SysTick_Handler(void) {
         if (ledTimeoutMs == 0) {
             GPIO_PinWrite(GPIO, LED_PORT, LED_PIN, 0); //zgaszenie LED po upływie LED_TIMEOUT
             state = 0;
+            OffDelayTimer = OFF_TO_ON_DELAY;	//start opóźnienia
         }
     }
 
@@ -98,9 +101,6 @@ void SysTick_Handler(void) {
 	// ===================================================
 	if (OffDelayTimer > 0) {
 		OffDelayTimer--;
-		if (OffDelayTimer == 0) {
-			OffDelayFlag = true;
-			}
 	}
 
 }
@@ -124,7 +124,7 @@ void ADC0_SEQA_IRQHandler(void) {
 			// Sprzętowy filtr dolnoprzepustowy (EMA ze stałą K=8).
 			// Zapis >> 3 to przesunięcie bitowe, działające jak dzielenie przez 8,
 			// ale wielokrotnie szybsze dla procesora.
-			filteredAdcValue = ((filteredAdcValue * 7) + adcResultValue) >> 3;
+			filteredAdcValue = ((filteredAdcValue * 63) + adcResultValue) >> 6;
 		}
 
 
@@ -214,12 +214,11 @@ int main(void) {
 
 			if (state == 0) {
 				// STAN CISZY
-				noiseFloor = ((noiseFloor * 63) + finalVal) / 64;
+				noiseFloor = ((noiseFloor * 31) + finalVal) / 32;
 
-				if (finalVal > dynamicThreshold && OffDelayFlag) {
+				if (finalVal > dynamicThreshold && OffDelayTimer == 0) {
 					GPIO_PinWrite(GPIO, LED_PORT, LED_PIN, 1);
 					state = 1;
-					OffDelayTimer = OFF_TO_ON_DELAY;
 					ledTimeoutMs = LED_TIMEOUT;
 				}
 			}

@@ -6,7 +6,7 @@
  * Generated linker script file for JN5189
  * Created from memory.ldt by FMCreateLinkMemory
  * Using Freemarker v2.3.30
- * MCUXpresso IDE v24.12 [Build 148] [2025-01-10] on 2 wrz 2026, 15:58:46
+ * MCUXpresso IDE v24.12 [Build 148] [2025-01-10] on 3 wrz 2026, 11:24:45
  */
 
 MEMORY

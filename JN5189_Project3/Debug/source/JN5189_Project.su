@@ -7,6 +7,6 @@ C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_P
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_adc.h:476:20:ADC_EnableConvSeqABurstMode	16	static
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_adc.h:690:20:ADC_EnableInterrupts	16	static
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_adc.h:755:20:ADC_ClearStatusFlags	16	static
-../source/JN5189_Project.c:44:6:SysTick_Handler	8	static
-../source/JN5189_Project.c:72:6:ADC0_SEQA_IRQHandler	24	static
-../source/JN5189_Project.c:104:5:main	72	static
+../source/JN5189_Project.c:74:6:SysTick_Handler	8	static
+../source/JN5189_Project.c:110:6:ADC0_SEQA_IRQHandler	24	static
+../source/JN5189_Project.c:142:5:main	72	static
