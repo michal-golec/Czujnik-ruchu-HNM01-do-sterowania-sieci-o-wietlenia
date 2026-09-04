@@ -1,0 +1,8 @@
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_iocon.h:143:22:IOCON_PinMuxSet	24	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_pwm.h:265:20:PWM_StartTimer	16	static
+../source/led_logic.c:24:6:PWM_Init_Custom	24	static
+../source/led_logic.c:68:6:LED_Process_Fade	16	static
+../source/led_logic.c:87:6:Process_Sensor_Data	32	static
+../source/led_logic.c:111:6:LED_Process_Timeout	16	static
+../source/led_logic.c:129:6:LED_StayOFF_Timeout	16	static
+../source/led_logic.c:143:6:LED_Fade_Timeout	24	static
