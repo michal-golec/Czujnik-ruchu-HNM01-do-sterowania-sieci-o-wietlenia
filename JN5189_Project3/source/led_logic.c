@@ -69,7 +69,7 @@ void PWM_Init_Custom(void) {
 
 
 
-void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity) {
+void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity, int8_t trend) {
     uint32_t dynamicThreshold = noiseFloor + sensitivity;
 
     if (ledState == 0) {
@@ -87,9 +87,15 @@ void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity) {
 
     printDelayCounter++;
     if (printDelayCounter >= 0) {
-        PRINTF("Szum: %u | Roznica: %u | Prog: %u | Stan: %u | Wypelnienie: %u | Czulosc: %u\r\n",
-        		noiseFloor, finalVal, dynamicThreshold, ledState, currentPwmDuty, sensitivity);
-        printDelayCounter = 0;
+
+    	const char* dirStr = (trend == 1) ? "ZBLIZANIE" : ((trend == -1) ? "ODDALANIE" : "STABILNIE");
+//        PRINTF("Szum: %u | Roznica: %u | Prog: %u | Stan: %u | Wypelnienie: %u | Czulosc: %u\r\n",
+//        		noiseFloor, finalVal, dynamicThreshold, ledState, currentPwmDuty, sensitivity);
+
+    	PRINTF("Wartosc:%u Szum:%u Prog:%u Ruch:%s\r\n",
+			   finalVal, noiseFloor, dynamicThreshold, dirStr);
+//        PRINTF("%u\r\n", finalVal);
+    	printDelayCounter = 0;
     }
 }
 

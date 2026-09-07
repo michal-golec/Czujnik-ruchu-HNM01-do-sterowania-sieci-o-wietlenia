@@ -11,10 +11,15 @@
 
 #define FADE_TIME 3000 // rozjaśnienie [ms]
 #define OFF_TO_ON_DELAY 100
-#define PROCESS_INTERVAL_MS 10 // Czas w milisekundach, co ile pobieramy dane z ADC (np. 10 ms)
+#define PROCESS_INTERVAL_MS 100 // Czas w milisekundach, co ile pobieramy dane z ADC (np. 10 ms)
 #define LED_ON_TIMEOUT_MS 5000 // Czas świecenie [ms]
 #define LED_STANDBY_TIMEOUT_MS 10000 // Czas po którym przechodzi w MODE_STANDBY, gdy nie ma ruchu [ms] (1800000ms = 30min)
 #define SENSITIVITY_MARGIN 80
+
+
+// Nowe stałe do analizy obwiedni
+#define ENVELOPE_DECAY_RATE 15  // Szybkość opadania obwiedni (im wyższa, tym szybciej spada)
+#define TREND_MARGIN 5          // Zabezpieczenie przed migotaniem trendu
 
 /*//////////////////////////////////////////////////////////////////////////////////
 
@@ -145,9 +150,50 @@ int main(void) {
 				finalVal = 0;
 			}
 
-			Process_Sensor_Data(finalVal, sensitivity);
-//			PRINTF ("ledOffTimeout = %u | currentMode = %u | minDuty = %u\r\n", ledOffTimeout, currentMode, minDuty);
 
+
+			// ===================================================
+			// 1. DETEKTOR OBWIEDNI (PEAK DETECTOR)
+			// ===================================================
+			static uint32_t envelope = 0;
+			if (finalVal > envelope) {
+				envelope = finalVal; // Błyskawiczny wzrost do szczytu fali
+			} else {
+				if (envelope > ENVELOPE_DECAY_RATE) {
+					envelope -= ENVELOPE_DECAY_RATE; // Łagodne opadanie
+				} else {
+					envelope = 0;
+				}
+			}
+
+			// ===================================================
+			// 2. FILTR DOLNOPRZEPUSTOWY OBWIEDNI (WYGŁADZANIE)
+			// ===================================================
+			static uint32_t filteredEnvelope = 0;
+			filteredEnvelope = ((filteredEnvelope * 7) + envelope) >> 3;
+
+			// ===================================================
+			// 3. DETEKCJA ZBLIŻANIA / ODDALANIA (TREND)
+			// ===================================================
+			static uint32_t fastAvg = 0;
+			static uint32_t slowAvg = 0;
+			int8_t trend = 0; // 1 = Zbliżanie, -1 = Oddalanie, 0 = Stabilnie
+
+			// fastAvg reaguje dynamicznie (okno ~4 próbki), slowAvg stanowi bazę (okno ~16 próbek)
+			fastAvg = ((fastAvg * 3) + filteredEnvelope) >> 2;
+			slowAvg = ((slowAvg * 15) + filteredEnvelope) >> 4;
+
+			if (fastAvg > (slowAvg + TREND_MARGIN)) {
+				trend = 1;  // Zbliżanie
+			} else if (fastAvg < (slowAvg - TREND_MARGIN)) {
+				trend = -1; // Oddalanie
+			}
+
+
+
+
+
+			Process_Sensor_Data(finalVal, sensitivity, trend);
 
 
 			// ===================================================
@@ -160,8 +206,8 @@ int main(void) {
 					sensitivity = sensitivityLevel[2];
 
 					if (ledOffTimeout == 0) {
-						currentMode = MODE_STANDBY;
-						PRINTF("Brak ruchu przez 30 minut. Przejscie w STANDBY (0%%).\r\n");
+//						currentMode = MODE_STANDBY;
+//						PRINTF("Brak ruchu przez 30 minut. Przejscie w STANDBY (0%%).\r\n");
 					}
 					break;
 
@@ -172,7 +218,7 @@ int main(void) {
 
 					if (ledState == 1) {
 						currentMode = MODE_NORMAL;
-						PRINTF("Wykryto ruch! Powrot do NORMAL (10%%-100%%).\r\n");
+//						PRINTF("Wykryto ruch! Powrot do NORMAL (10%%-100%%).\r\n");
 					}
 					break;
 			}
