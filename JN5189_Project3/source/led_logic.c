@@ -87,8 +87,8 @@ void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity) {
 
     printDelayCounter++;
     if (printDelayCounter >= 0) {
-        PRINTF("Szum: %u | Roznica: %u | Prog: %u | Stan: %u | Wypelnienie: %u\r\n",
-        		noiseFloor, finalVal, dynamicThreshold, ledState, currentPwmDuty);
+        PRINTF("Szum: %u | Roznica: %u | Prog: %u | Stan: %u | Wypelnienie: %u | Czulosc: %u\r\n",
+        		noiseFloor, finalVal, dynamicThreshold, ledState, currentPwmDuty, sensitivity);
         printDelayCounter = 0;
     }
 }

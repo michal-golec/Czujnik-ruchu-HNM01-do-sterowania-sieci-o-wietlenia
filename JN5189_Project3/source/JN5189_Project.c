@@ -41,8 +41,13 @@ volatile uint16_t OffToOnDelay = OFF_TO_ON_DELAY;
 volatile uint16_t DataFreq = PROCESS_INTERVAL_MS;
 uint32_t finalVal = 0;
 uint32_t sensitivity = SENSITIVITY_MARGIN;
+uint32_t sensitivityLevel[5] = {
+		50, 70, SENSITIVITY_MARGIN, 100, 120
+};
+
 volatile uint16_t ledOnTimeout = LED_ON_TIMEOUT_MS;
 volatile uint32_t ledOffTimeout = LED_STANDBY_TIMEOUT_MS;
+
 
 typedef enum {
     MODE_NORMAL,
@@ -141,7 +146,7 @@ int main(void) {
 			}
 
 			Process_Sensor_Data(finalVal, sensitivity);
-			PRINTF ("ledOffTimeout = %u | currentMode = %u | minDuty = %u\r\n", ledOffTimeout, currentMode, minDuty);
+//			PRINTF ("ledOffTimeout = %u | currentMode = %u | minDuty = %u\r\n", ledOffTimeout, currentMode, minDuty);
 
 
 
@@ -151,6 +156,8 @@ int main(void) {
 			switch (currentMode) {
 				case MODE_NORMAL:
 					minDuty = 10;
+					maxDuty = 100;
+					sensitivity = sensitivityLevel[2];
 
 					if (ledOffTimeout == 0) {
 						currentMode = MODE_STANDBY;
@@ -160,6 +167,8 @@ int main(void) {
 
 				case MODE_STANDBY:
 					minDuty = 0;
+					maxDuty = 10;
+					sensitivity = sensitivityLevel[1];
 
 					if (ledState == 1) {
 						currentMode = MODE_NORMAL;
