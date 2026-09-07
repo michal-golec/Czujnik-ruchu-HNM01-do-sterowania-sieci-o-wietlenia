@@ -4,8 +4,8 @@
 #include "fsl_pwm.h"
 #include "fsl_gpio.h"
 
-uint32_t noiseFloor = STARTUP_THRESHOLD - SENSITIVITY_MARGIN;
-volatile uint32_t state = 0;
+uint32_t noiseFloor = STARTUP_THRESHOLD;
+volatile uint32_t ledState = 0;
 volatile uint16_t ledTimeoutMs = 0;
 volatile uint16_t OffDelayTimer = 0;
 uint32_t printDelayCounter = 0;
@@ -13,7 +13,7 @@ bool ledTimeoutRstFlag = false;
 bool OffToOnDeleyFlag = false;
 
 
-volatile uint8_t currentPwmDuty = 10;  // 10-100%
+volatile uint8_t currentPwmDuty = 0;  // 10-100%
 volatile int8_t pwmDirection = 0;     // 1 = rozjaśnianie, -1 = ściemnianie, 0 = stop
 
 // Struktura konfiguracyjna, której będziemy używać do zmiany wypełnienia
@@ -65,33 +65,18 @@ void PWM_Init_Custom(void) {
 
 
 
-void LED_Process_Fade(uint8_t targetPwmDuty) {
-
-	if (currentPwmDuty < targetPwmDuty) {
-		currentPwmDuty++;
-	}
-	else if (currentPwmDuty > targetPwmDuty) {
-		currentPwmDuty--;
-	}
-	else return;
-
-	// Ponieważ JN5189 nie ma osobnej funkcji PWM_UpdatePwmDutycycle,
-	// wyliczamy nową wartość odcięcia (0 - 1000) i aplikujemy ją do modułu:
-	pwmChannelSetup.comp_val = (currentPwmDuty * PWM_PERIOD) / 100;
-	PWM_SetupPwm(PWM, kPWM_Pwm0, &pwmChannelSetup);
-	PWM_SetupPwm(PWM, kPWM_Pwm3, &pwmChannelSetup);
-}
 
 
 
-void Process_Sensor_Data(uint32_t finalVal) {
-    uint32_t dynamicThreshold = noiseFloor + SENSITIVITY_MARGIN;
 
-    if (state == 0) {
+void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity) {
+    uint32_t dynamicThreshold = noiseFloor + sensitivity;
+
+    if (ledState == 0) {
         noiseFloor = ((noiseFloor * 31) + finalVal) / 32;
         if (finalVal > dynamicThreshold && OffDelayTimer == 0) {
         	pwmDirection = 1; // Start rozjaśniania
-            state = 1;
+            ledState = 1;
             ledTimeoutRstFlag = true;
         }
     } else {
@@ -103,7 +88,7 @@ void Process_Sensor_Data(uint32_t finalVal) {
     printDelayCounter++;
     if (printDelayCounter >= 0) {
         PRINTF("Szum: %u | Roznica: %u | Prog: %u | Stan: %u | Wypelnienie: %u\r\n",
-        		noiseFloor, finalVal, dynamicThreshold, state, currentPwmDuty);
+        		noiseFloor, finalVal, dynamicThreshold, ledState, currentPwmDuty);
         printDelayCounter = 0;
     }
 }
@@ -120,7 +105,7 @@ void LED_Process_Timeout(uint16_t ledOnTimeout){
 		ledTimeoutMs--;
 		if (ledTimeoutMs == 0) {
 			pwmDirection = -1; // Start ściemniania
-			state = 0;
+			ledState = 0;
 			OffToOnDeleyFlag = true;	//start opóźnienia
 		}
 	}
@@ -140,16 +125,40 @@ void LED_StayOFF_Timeout(uint16_t OffToOnDelay){
 }
 
 
-void LED_Fade_Timeout(uint8_t targetPwmDuty, uint16_t fadeTime){
+void LED_Process_Fade(uint8_t minDuty, uint8_t maxDuty, uint16_t fadeTime){
 	// ===================================================
 	// TIMER 4: Sterowanie czasem rozjaśnienia (zmiany wypełnienia PWM)
 	// ===================================================
-	uint16_t fadeTimeoutDivider = fadeTime;
+
+	uint8_t targetPwmDuty = 0;
+	if (ledState == 0) targetPwmDuty = minDuty;
+	else if (ledState == 1) targetPwmDuty = maxDuty;
+
+
+	static uint16_t fadeTimeoutDivider = 0;
 	if (fadeTimeoutDivider > 0){
 		fadeTimeoutDivider--;
-		if (fadeTimeoutDivider == 0){
-			LED_Process_Fade(targetPwmDuty);
-			fadeTimeoutDivider = fadeTime;
-		}
 	}
+	if (fadeTimeoutDivider == 0){
+		LED_Fade_Action(targetPwmDuty);
+		fadeTimeoutDivider = (fadeTime >= 100) ? (fadeTime / 100) : 1;
+	}
+}
+
+void LED_Fade_Action(uint8_t targetPwmDuty) {
+
+	if (currentPwmDuty < targetPwmDuty) {
+		currentPwmDuty++;
+	}
+	else if (currentPwmDuty > targetPwmDuty) {
+		currentPwmDuty--;
+	}
+	else return;
+
+	// Ponieważ JN5189 nie ma osobnej funkcji PWM_UpdatePwmDutycycle,
+	// wyliczamy nową wartość odcięcia (0 - 1000) i aplikujemy ją do modułu:
+	pwmChannelSetup.comp_val = (currentPwmDuty * PWM_PERIOD) / 100;
+	PWM_SetupPwm(PWM, kPWM_Pwm0, &pwmChannelSetup);
+	PWM_SetupPwm(PWM, kPWM_Pwm3, &pwmChannelSetup);
+
 }

@@ -58,12 +58,12 @@ void ADC_GetData_Frequence_Timeout(uint16_t DataFreq) {
 	// ===================================================
 	// TIMER 2: Sterowanie częstością przetwarzania ADC
 	// ===================================================
-	uint16_t processDataTimer = DataFreq;
+	static uint16_t processDataTimer = 0;
 	if (processDataTimer > 0) {
 		processDataTimer--;
-		if (processDataTimer == 0) {
-			processDataFlag = true;                     // Wyzwalamy obliczenia w pętli while
-			processDataTimer = DataFreq;     // Przeładowanie licznika (od nowa)
-		}
+	}
+	if (processDataTimer == 0) {
+		processDataFlag = true;                     // Wyzwalamy obliczenia w pętli while
+		processDataTimer = DataFreq;     // Przeładowanie licznika (od nowa)
 	}
 }

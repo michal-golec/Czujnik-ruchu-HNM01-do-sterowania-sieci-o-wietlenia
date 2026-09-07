@@ -9,10 +9,12 @@
 #include "adc_sensor.h"
 #include "led_logic.h"
 
-#define FADE_DIVIDER 30 // rozjaśnienie przez FADE_DIVIDER * 100ms
+#define FADE_TIME 3000 // rozjaśnienie [ms]
 #define OFF_TO_ON_DELAY 100
 #define PROCESS_INTERVAL_MS 10 // Czas w milisekundach, co ile pobieramy dane z ADC (np. 10 ms)
-#define LED_TIMEOUT 2500
+#define LED_ON_TIMEOUT_MS 5000 // Czas świecenie [ms]
+#define LED_STANDBY_TIMEOUT_MS 10000 // Czas po którym przechodzi w MODE_STANDBY, gdy nie ma ruchu [ms] (1800000ms = 30min)
+#define SENSITIVITY_MARGIN 80
 
 /*//////////////////////////////////////////////////////////////////////////////////
 
@@ -32,30 +34,36 @@ noiseFloor = ((noiseFloor * 15) + finalVal) / 16;
 ///////////////////////////////////////////////////////////////////////////////////*/
 
 
-volatile uint16_t fadeTime = FADE_DIVIDER;
-volatile uint8_t targetPwmDuty = 10;
+volatile uint16_t fadeTime = FADE_TIME;
+volatile uint8_t minDuty = 10;
+volatile uint8_t maxDuty = 100;
 volatile uint16_t OffToOnDelay = OFF_TO_ON_DELAY;
 volatile uint16_t DataFreq = PROCESS_INTERVAL_MS;
 uint32_t finalVal = 0;
-uint16_t ledOnTimeout = LED_TIMEOUT;
+uint32_t sensitivity = SENSITIVITY_MARGIN;
+volatile uint16_t ledOnTimeout = LED_ON_TIMEOUT_MS;
+volatile uint32_t ledOffTimeout = LED_STANDBY_TIMEOUT_MS;
+
+typedef enum {
+    MODE_NORMAL,
+    MODE_STANDBY
+} SystemMode_t;
+
+SystemMode_t currentMode = MODE_NORMAL;
 
 
 //przewanie do sterowania LED
 void SysTick_Handler(void) {
 
-	//Zmiana wypelnienia PWM
-	// ===================================================
-	// TIMER 4: Sterowanie czasem rozjaśnienia (zmiany wypełnienia PWM)
-	// ===================================================
-	LED_Fade_Timeout(targetPwmDuty, fadeTime);
-
-	// ===================================================
-	// TIMER 1: Sterowanie czasem świecenia LED
-	// ===================================================
-	LED_Process_Timeout(ledOnTimeout);
+	if (ledState == 0){
+		if (ledOffTimeout > 0) ledOffTimeout--;
+	}
+	else {
+		ledOffTimeout = LED_STANDBY_TIMEOUT_MS;
+	}
 
 
-    // ===================================================
+	// ===================================================
 	// TIMER 2: Sterowanie częstością przetwarzania ADC
 	// ===================================================
 	ADC_GetData_Frequence_Timeout(DataFreq);
@@ -64,6 +72,23 @@ void SysTick_Handler(void) {
 	// TIMER 3: Delay przed ponownym zapaleniem
 	// ===================================================
 	LED_StayOFF_Timeout(OffToOnDelay);
+
+
+	//Zmiana wypelnienia PWM
+	// ===================================================
+	// TIMER 4: Sterowanie czasem rozjaśnienia (zmiany wypełnienia PWM)
+	// ===================================================
+	LED_Process_Fade(minDuty, maxDuty, fadeTime);
+
+	// ===================================================
+	// TIMER 1: Sterowanie czasem świecenia LED
+	// ===================================================
+	LED_Process_Timeout(ledOnTimeout);
+
+
+
+
+
 
 }
 
@@ -115,7 +140,33 @@ int main(void) {
 				finalVal = 0;
 			}
 
-			Process_Sensor_Data(finalVal);
+			Process_Sensor_Data(finalVal, sensitivity);
+			PRINTF ("ledOffTimeout = %u | currentMode = %u | minDuty = %u\r\n", ledOffTimeout, currentMode, minDuty);
+
+
+
+			// ===================================================
+			// MASZYNA STANÓW SYSTEMU
+			// ===================================================
+			switch (currentMode) {
+				case MODE_NORMAL:
+					minDuty = 10;
+
+					if (ledOffTimeout == 0) {
+						currentMode = MODE_STANDBY;
+						PRINTF("Brak ruchu przez 30 minut. Przejscie w STANDBY (0%%).\r\n");
+					}
+					break;
+
+				case MODE_STANDBY:
+					minDuty = 0;
+
+					if (ledState == 1) {
+						currentMode = MODE_NORMAL;
+						PRINTF("Wykryto ruch! Powrot do NORMAL (10%%-100%%).\r\n");
+					}
+					break;
+			}
     	}
 		__WFI();
 	}

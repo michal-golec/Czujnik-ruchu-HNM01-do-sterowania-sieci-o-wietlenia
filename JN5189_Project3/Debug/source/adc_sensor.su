@@ -6,4 +6,4 @@ C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_P
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_adc.h:755:20:ADC_ClearStatusFlags	16	static
 ../source/adc_sensor.c:13:6:ADC_Init_Custom	40	static
 ../source/adc_sensor.c:37:6:ADC0_SEQA_IRQHandler	24	static
-../source/adc_sensor.c:57:6:ADC_GetData_Frequence_Timeout	24	static
+../source/adc_sensor.c:57:6:ADC_GetData_Frequence_Timeout	16	static
