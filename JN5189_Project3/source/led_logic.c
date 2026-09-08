@@ -12,6 +12,8 @@ uint32_t printDelayCounter = 0;
 bool ledTimeoutRstFlag = false;
 bool OffToOnDeleyFlag = false;
 
+volatile uint32_t sensitivityCalibTimeout = 5000;
+
 
 volatile uint8_t currentPwmDuty = 0;  // 10-100%
 volatile int8_t pwmDirection = 0;     // 1 = rozjaśnianie, -1 = ściemnianie, 0 = stop
@@ -88,13 +90,13 @@ void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity, int8_t trend) 
     printDelayCounter++;
     if (printDelayCounter >= 0) {
 
-    	const char* dirStr = (trend == 1) ? "ZBLIZANIE" : ((trend == -1) ? "ODDALANIE" : "STABILNIE");
-//        PRINTF("Szum: %u | Roznica: %u | Prog: %u | Stan: %u | Wypelnienie: %u | Czulosc: %u\r\n",
-//        		noiseFloor, finalVal, dynamicThreshold, ledState, currentPwmDuty, sensitivity);
+    	const char* dirStr = (trend == 1) ? "ZBLIZANIE" : ((trend == 2) ? "ODDALANIE" : "STABILNIE");
 
-    	PRINTF("Wartosc:%u Szum:%u Prog:%u Ruch:%s\r\n",
-			   finalVal, noiseFloor, dynamicThreshold, dirStr);
-//        PRINTF("%u\r\n", finalVal);
+//    	PRINTF("Wartosc: %u | Szum: %u | Prog: %u | Czulosc: %u | ", finalVal, noiseFloor, dynamicThreshold, sensitivity);
+
+//    	PRINTF("Wartosc: %u | Szum: %u | Prog: %u | Wypelnienie: %u | Czulosc: %u | Ruch: %s | ",
+//			   finalVal, noiseFloor, dynamicThreshold, currentPwmDuty, sensitivity, dirStr);
+
     	printDelayCounter = 0;
     }
 }
@@ -167,4 +169,19 @@ void LED_Fade_Action(uint8_t targetPwmDuty) {
 	PWM_SetupPwm(PWM, kPWM_Pwm0, &pwmChannelSetup);
 	PWM_SetupPwm(PWM, kPWM_Pwm3, &pwmChannelSetup);
 
+}
+
+
+
+void Sensitivity_Calibration_Timer(bool senCalibEnable, uint32_t senCalibTimeStep, uint32_t senCalibStep){
+	if (senCalibEnable){
+		if (sensitivityCalibTimeout > 0) sensitivityCalibTimeout--;
+		else {
+			sensitivityCalibTimeout = senCalibTimeStep;
+			sensitivity = sensitivity - senCalibStep;
+			if (sensitivity == 0) sensitivity = SENSITIVITY_MARGIN;
+		}
+		PRINTF("sensitivityCalibTimeout = %u | sensitivity = %u\r\n", sensitivityCalibTimeout, sensitivity);
+	}
+	else return;
 }

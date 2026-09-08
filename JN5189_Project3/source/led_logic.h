@@ -8,8 +8,9 @@
 #define LED_PIN 19
 #define STARTUP_THRESHOLD 500
 #define PWM_PERIOD 1000
+#define SENSITIVITY_MARGIN 80
 
-
+extern uint32_t sensitivity;
 
 //void LED_Init_Custom(void);
 void PWM_Init_Custom(void);
@@ -18,6 +19,7 @@ void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity, int8_t trend);
 void LED_Process_Timeout(uint16_t ledOnTimeout);
 void LED_StayOFF_Timeout(uint16_t OffToOnDelay);
 void LED_Process_Fade(uint8_t minDuty, uint8_t maxDuty, uint16_t fadeTime);
+void Sensitivity_Calibration_Timer(bool senCalibEnable, uint32_t senCalibTimeStep, uint32_t senCalibStep);
 
 extern volatile uint32_t ledState;
 

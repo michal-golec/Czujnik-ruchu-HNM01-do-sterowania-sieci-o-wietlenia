@@ -13,13 +13,15 @@
 #define OFF_TO_ON_DELAY 100
 #define PROCESS_INTERVAL_MS 100 // Czas w milisekundach, co ile pobieramy dane z ADC (np. 10 ms)
 #define LED_ON_TIMEOUT_MS 5000 // Czas świecenie [ms]
-#define LED_STANDBY_TIMEOUT_MS 10000 // Czas po którym przechodzi w MODE_STANDBY, gdy nie ma ruchu [ms] (1800000ms = 30min)
+#define LED_STANDBY_TIMEOUT_MS 1800000 // Czas po którym przechodzi w MODE_STANDBY, gdy nie ma ruchu [ms] (1800000ms = 30min)
 #define SENSITIVITY_MARGIN 80
+#define SENSITIVITY_LEVEL_SIZE 5
 
 
 // Nowe stałe do analizy obwiedni
 #define ENVELOPE_DECAY_RATE 15  // Szybkość opadania obwiedni (im wyższa, tym szybciej spada)
-#define TREND_MARGIN 5          // Zabezpieczenie przed migotaniem trendu
+#define TREND_UP_MARGIN 20
+#define TREND_DOWN_MARGIN 5
 
 /*//////////////////////////////////////////////////////////////////////////////////
 
@@ -46,32 +48,42 @@ volatile uint16_t OffToOnDelay = OFF_TO_ON_DELAY;
 volatile uint16_t DataFreq = PROCESS_INTERVAL_MS;
 uint32_t finalVal = 0;
 uint32_t sensitivity = SENSITIVITY_MARGIN;
-uint32_t sensitivityLevel[5] = {
-		50, 70, SENSITIVITY_MARGIN, 100, 120
+uint32_t sensitivityLevel[SENSITIVITY_LEVEL_SIZE] = {
+		40, 70, SENSITIVITY_MARGIN, 100, 120
 };
 
 volatile uint16_t ledOnTimeout = LED_ON_TIMEOUT_MS;
 volatile uint32_t ledOffTimeout = LED_STANDBY_TIMEOUT_MS;
 
-
 typedef enum {
     MODE_NORMAL,
-    MODE_STANDBY
+    MODE_STANDBY,
+	MODE_CALIBRATION
 } SystemMode_t;
 
-SystemMode_t currentMode = MODE_NORMAL;
+SystemMode_t currentMode = MODE_CALIBRATION;
 
+//zmienne do kalibracji
+uint32_t senCalibTimeStep = 3000; //[ms]
+uint32_t senCalibStep = 5;
+bool senCalibEnable = false;
 
 //przewanie do sterowania LED
 void SysTick_Handler(void) {
 
+	//kalibracja sensitivity
+	Sensitivity_Calibration_Timer(senCalibEnable, senCalibTimeStep, senCalibStep);
+
+	/////////////////////////////////////////////////////////////
+
+
+	// Timer do standby
 	if (ledState == 0){
 		if (ledOffTimeout > 0) ledOffTimeout--;
 	}
 	else {
 		ledOffTimeout = LED_STANDBY_TIMEOUT_MS;
 	}
-
 
 	// ===================================================
 	// TIMER 2: Sterowanie częstością przetwarzania ADC
@@ -127,7 +139,7 @@ int main(void) {
 	ADC_Init_Custom();
 
 
-    SysTick_Config(SystemCoreClock / 1000);
+    SysTick_Config(SystemCoreClock / 1000);	//systick bije co 1ms
     __enable_irq();
 
 
@@ -183,13 +195,14 @@ int main(void) {
 			fastAvg = ((fastAvg * 3) + filteredEnvelope) >> 2;
 			slowAvg = ((slowAvg * 15) + filteredEnvelope) >> 4;
 
-			if (fastAvg > (slowAvg + TREND_MARGIN)) {
+			if (fastAvg > (slowAvg + TREND_UP_MARGIN)) {
 				trend = 1;  // Zbliżanie
-			} else if (fastAvg < (slowAvg - TREND_MARGIN)) {
-				trend = -1; // Oddalanie
+			} else if (fastAvg < (slowAvg - TREND_DOWN_MARGIN)) {
+				trend = 2; // Oddalanie
 			}
 
-
+//			PRINTF("fastAvg = %u | slowAvg = %u | trend = %d | stan = %u\r\n",
+//						fastAvg, slowAvg, trend, ledState);
 
 
 
@@ -206,7 +219,7 @@ int main(void) {
 					sensitivity = sensitivityLevel[2];
 
 					if (ledOffTimeout == 0) {
-//						currentMode = MODE_STANDBY;
+						currentMode = MODE_STANDBY;
 //						PRINTF("Brak ruchu przez 30 minut. Przejscie w STANDBY (0%%).\r\n");
 					}
 					break;
@@ -221,6 +234,28 @@ int main(void) {
 //						PRINTF("Wykryto ruch! Powrot do NORMAL (10%%-100%%).\r\n");
 					}
 					break;
+
+				case MODE_CALIBRATION:
+					PRINTF("Kalibracja START!\r\n");
+					CLOCK_uDelay(5000);
+					minDuty = 0;
+					maxDuty = 100;
+					sensitivity = SENSITIVITY_MARGIN;
+					senCalibEnable = true;
+					if (ledState == 1){
+						senCalibEnable = false;
+						PRINTF("Kalibracja zakonczona!\r\n");
+						PRINTF("Ustalone poziomy czulosci:\r\n");
+						for (int i = 0; i < SENSITIVITY_LEVEL_SIZE; i++){
+							sensitivityLevel[i] = sensitivity + senCalibStep; //najniższy sensitivityLevel to ostatni przed zapaleniem
+							sensitivity = sensitivity + 10;
+							PRINTF("%u, ", sensitivityLevel[i]);
+						}
+						currentMode = MODE_NORMAL;
+					}
+
+
+
 			}
     	}
 		__WFI();
