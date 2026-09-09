@@ -13,7 +13,7 @@
 #define OFF_TO_ON_DELAY 100
 #define PROCESS_INTERVAL_MS 100 // Czas w milisekundach, co ile pobieramy dane z ADC (np. 10 ms)
 #define LED_ON_TIMEOUT_MS 5000 // Czas świecenie [ms]
-#define LED_STANDBY_TIMEOUT_MS 1800000 // Czas po którym przechodzi w MODE_STANDBY, gdy nie ma ruchu [ms] (1800000ms = 30min)
+#define LED_STANDBY_TIMEOUT_MS 5000 // Czas po którym przechodzi w MODE_STANDBY, gdy nie ma ruchu [ms] (1800000ms = 30min)
 #define SENSITIVITY_MARGIN 80
 #define SENSITIVITY_LEVEL_SIZE 5
 
@@ -61,7 +61,7 @@ typedef enum {
 	MODE_CALIBRATION
 } SystemMode_t;
 
-SystemMode_t currentMode = MODE_CALIBRATION;
+SystemMode_t currentMode = MODE_NORMAL;
 
 //zmienne do kalibracji
 uint32_t senCalibTimeStep = 3000; //[ms]
@@ -143,6 +143,8 @@ int main(void) {
     __enable_irq();
 
 
+    CLOCK_uDelay(2000000);
+    PRINTF("/////////////////////\r\nStart petli glownej\r\n/////////////////////\r\n");
     while(1) {
 
     	if (processDataFlag) {
@@ -201,12 +203,13 @@ int main(void) {
 				trend = 2; // Oddalanie
 			}
 
-//			PRINTF("fastAvg = %u | slowAvg = %u | trend = %d | stan = %u\r\n",
-//						fastAvg, slowAvg, trend, ledState);
-
 
 
 			Process_Sensor_Data(finalVal, sensitivity, trend);
+
+			PRINTF("fastAvg = %u | slowAvg = %u | trend = %d | stan = %u\r\n",
+						fastAvg, slowAvg, trend, ledState);
+
 
 
 			// ===================================================
@@ -220,7 +223,13 @@ int main(void) {
 
 					if (ledOffTimeout == 0) {
 						currentMode = MODE_STANDBY;
+
 //						PRINTF("Brak ruchu przez 30 minut. Przejscie w STANDBY (0%%).\r\n");
+					}
+					else if (senCalibEnable){
+						PRINTF("Kalibracja START!\r\n");
+						senCalibEnable = true;
+						currentMode = MODE_CALIBRATION;
 					}
 					break;
 
@@ -236,12 +245,9 @@ int main(void) {
 					break;
 
 				case MODE_CALIBRATION:
-					PRINTF("Kalibracja START!\r\n");
-					CLOCK_uDelay(5000);
 					minDuty = 0;
 					maxDuty = 100;
-					sensitivity = SENSITIVITY_MARGIN;
-					senCalibEnable = true;
+					PRINTF("Calib...\r\n");
 					if (ledState == 1){
 						senCalibEnable = false;
 						PRINTF("Kalibracja zakonczona!\r\n");
@@ -251,6 +257,8 @@ int main(void) {
 							sensitivity = sensitivity + 10;
 							PRINTF("%u, ", sensitivityLevel[i]);
 						}
+						PRINTF("\r\n");
+						CLOCK_uDelay(4000000);
 						currentMode = MODE_NORMAL;
 					}
 

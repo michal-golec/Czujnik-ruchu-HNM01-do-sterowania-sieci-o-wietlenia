@@ -92,10 +92,11 @@ void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity, int8_t trend) 
 
     	const char* dirStr = (trend == 1) ? "ZBLIZANIE" : ((trend == 2) ? "ODDALANIE" : "STABILNIE");
 
-//    	PRINTF("Wartosc: %u | Szum: %u | Prog: %u | Czulosc: %u | ", finalVal, noiseFloor, dynamicThreshold, sensitivity);
+//    	PRINTF("Wartosc = %u | Szum = %u | Prog = %u | Wypelnienie = %u | Czulosc = %u\r\n",
+//    			finalVal, noiseFloor, dynamicThreshold, currentPwmDuty, sensitivity);
 
-//    	PRINTF("Wartosc: %u | Szum: %u | Prog: %u | Wypelnienie: %u | Czulosc: %u | Ruch: %s | ",
-//			   finalVal, noiseFloor, dynamicThreshold, currentPwmDuty, sensitivity, dirStr);
+    	PRINTF("Wartosc = %u | Szum = %u | Prog = %u | Wypelnienie = %u | Czulosc = %u | Ruch = %s | ",
+			   finalVal, noiseFloor, dynamicThreshold, currentPwmDuty, sensitivity, dirStr);
 
     	printDelayCounter = 0;
     }
@@ -181,7 +182,6 @@ void Sensitivity_Calibration_Timer(bool senCalibEnable, uint32_t senCalibTimeSte
 			sensitivity = sensitivity - senCalibStep;
 			if (sensitivity == 0) sensitivity = SENSITIVITY_MARGIN;
 		}
-		PRINTF("sensitivityCalibTimeout = %u | sensitivity = %u\r\n", sensitivityCalibTimeout, sensitivity);
 	}
 	else return;
 }
