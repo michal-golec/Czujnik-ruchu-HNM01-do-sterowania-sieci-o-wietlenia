@@ -4,16 +4,17 @@
 #include "pin_mux.h"
 #include "clock_config.h"
 #include "fsl_debug_console.h"
-#include "fsl_ctimer.h"
+
 
 #include "adc_sensor.h"
 #include "led_logic.h"
+#include "IR_Process.h"
 
 #define FADE_TIME 3000 // rozjaśnienie [ms]
 #define OFF_TO_ON_DELAY 100
 #define PROCESS_INTERVAL_MS 100 // Czas w milisekundach, co ile pobieramy dane z ADC (np. 10 ms)
 #define LED_ON_TIMEOUT_MS 5000 // Czas świecenie [ms]
-#define LED_STANDBY_TIMEOUT_MS 5000 // Czas po którym przechodzi w MODE_STANDBY, gdy nie ma ruchu [ms] (1800000ms = 30min)
+#define LED_STANDBY_TIMEOUT_MS 1800000 // Czas po którym przechodzi w MODE_STANDBY, gdy nie ma ruchu [ms] (1800000ms = 30min)
 #define SENSITIVITY_MARGIN 80
 #define SENSITIVITY_LEVEL_SIZE 5
 
@@ -22,6 +23,9 @@
 #define ENVELOPE_DECAY_RATE 15  // Szybkość opadania obwiedni (im wyższa, tym szybciej spada)
 #define TREND_UP_MARGIN 20
 #define TREND_DOWN_MARGIN 5
+
+////
+
 
 /*//////////////////////////////////////////////////////////////////////////////////
 
@@ -68,6 +72,9 @@ uint32_t senCalibTimeStep = 3000; //[ms]
 uint32_t senCalibStep = 5;
 bool senCalibEnable = false;
 
+
+
+
 //przewanie do sterowania LED
 void SysTick_Handler(void) {
 
@@ -106,14 +113,7 @@ void SysTick_Handler(void) {
 	// TIMER 1: Sterowanie czasem świecenia LED
 	// ===================================================
 	LED_Process_Timeout(ledOnTimeout);
-
-
-
-
-
-
 }
-
 
 
 
@@ -138,15 +138,34 @@ int main(void) {
 	PWM_Init_Custom();
 	ADC_Init_Custom();
 
+	IR_Sniffer_Init();
+
 
     SysTick_Config(SystemCoreClock / 1000);	//systick bije co 1ms
     __enable_irq();
 
 
+
     CLOCK_uDelay(2000000);
     PRINTF("/////////////////////\r\nStart petli glownej\r\n/////////////////////\r\n");
+
     while(1) {
 
+    	int16_t ir_cmd = IR_Process_NonBlocking();
+    	// Reakcja tylko, gdy przyszedł autoryzowany i pełny pakiet
+		if (ir_cmd != IR_NO_DATA) {
+			PRINTF("\r\nOtrzymano komende od pilota: 0x%02X (%u)\r\n", ir_cmd, ir_cmd);
+
+			// Tutaj docelowo zrobisz logikę na switch-case
+			// switch (ir_cmd) {
+			//     case 0x45: // np. Przycisk ON
+			//         ...
+			//         break;
+			// }
+		}
+
+
+    	//sprawdzanie czy jest ruch
     	if (processDataFlag) {
     		processDataFlag = false;
 
@@ -207,8 +226,8 @@ int main(void) {
 
 			Process_Sensor_Data(finalVal, sensitivity, trend);
 
-			PRINTF("fastAvg = %u | slowAvg = %u | trend = %d | stan = %u\r\n",
-						fastAvg, slowAvg, trend, ledState);
+//			PRINTF("fastAvg = %u | slowAvg = %u | trend = %d | stan = %u\r\n",
+//						fastAvg, slowAvg, trend, ledState);
 
 
 

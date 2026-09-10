@@ -1,8 +1,4 @@
 #include "led_logic.h"
-#include "fsl_iocon.h"
-#include "fsl_debug_console.h"
-#include "fsl_pwm.h"
-#include "fsl_gpio.h"
 
 uint32_t noiseFloor = STARTUP_THRESHOLD;
 volatile uint32_t ledState = 0;
@@ -92,11 +88,8 @@ void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity, int8_t trend) 
 
     	const char* dirStr = (trend == 1) ? "ZBLIZANIE" : ((trend == 2) ? "ODDALANIE" : "STABILNIE");
 
-//    	PRINTF("Wartosc = %u | Szum = %u | Prog = %u | Wypelnienie = %u | Czulosc = %u\r\n",
-//    			finalVal, noiseFloor, dynamicThreshold, currentPwmDuty, sensitivity);
-
-    	PRINTF("Wartosc = %u | Szum = %u | Prog = %u | Wypelnienie = %u | Czulosc = %u | Ruch = %s | ",
-			   finalVal, noiseFloor, dynamicThreshold, currentPwmDuty, sensitivity, dirStr);
+//    	PRINTF("Wartosc = %u | Szum = %u | Prog = %u | Wypelnienie = %u | Czulosc = %u | Ruch = %s | ",
+//			   finalVal, noiseFloor, dynamicThreshold, currentPwmDuty, sensitivity, dirStr);
 
     	printDelayCounter = 0;
     }

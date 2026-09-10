@@ -4,18 +4,21 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../source/IR_Process.c \
 ../source/JN5189_Project.c \
 ../source/adc_sensor.c \
 ../source/led_logic.c \
 ../source/semihost_hardfault.c 
 
 C_DEPS += \
+./source/IR_Process.d \
 ./source/JN5189_Project.d \
 ./source/adc_sensor.d \
 ./source/led_logic.d \
 ./source/semihost_hardfault.d 
 
 OBJS += \
+./source/IR_Process.o \
 ./source/JN5189_Project.o \
 ./source/adc_sensor.o \
 ./source/led_logic.o \
@@ -34,7 +37,7 @@ source/%.o: ../source/%.c source/subdir.mk
 clean: clean-source
 
 clean-source:
-	-$(RM) ./source/JN5189_Project.d ./source/JN5189_Project.o ./source/adc_sensor.d ./source/adc_sensor.o ./source/led_logic.d ./source/led_logic.o ./source/semihost_hardfault.d ./source/semihost_hardfault.o
+	-$(RM) ./source/IR_Process.d ./source/IR_Process.o ./source/JN5189_Project.d ./source/JN5189_Project.o ./source/adc_sensor.d ./source/adc_sensor.o ./source/led_logic.d ./source/led_logic.o ./source/semihost_hardfault.d ./source/semihost_hardfault.o
 
 .PHONY: clean-source
 

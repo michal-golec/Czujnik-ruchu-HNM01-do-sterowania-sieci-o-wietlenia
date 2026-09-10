@@ -27,10 +27,13 @@ source/JN5189_Project.o source/JN5189_Project.d: \
  C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\utilities/fsl_debug_console.h \
  C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\component\serial_manager/serial_manager.h \
  C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\component\serial_manager/serial_port_uart.h \
- C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_ctimer.h \
  ../source/adc_sensor.h \
  C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_adc.h \
- ../source/led_logic.h
+ ../source/led_logic.h \
+ C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_iocon.h \
+ C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_pwm.h \
+ ../source/IR_Process.h \
+ C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_ctimer.h
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\board/board.h:
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\device/fsl_device_registers.h:
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\device/JN5189.h:
@@ -58,7 +61,10 @@ C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_P
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\utilities/fsl_debug_console.h:
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\component\serial_manager/serial_manager.h:
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\component\serial_manager/serial_port_uart.h:
-C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_ctimer.h:
 ../source/adc_sensor.h:
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_adc.h:
 ../source/led_logic.h:
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_iocon.h:
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_pwm.h:
+../source/IR_Process.h:
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_ctimer.h:

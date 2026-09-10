@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "fsl_iocon.h"
+#include "fsl_debug_console.h"
+#include "fsl_pwm.h"
+#include "fsl_gpio.h"
 
 #define LED_PORT 0
 #define LED_PIN 19

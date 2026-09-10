@@ -1,0 +1,6 @@
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_ctimer.h:348:24:CTIMER_GetTimerCountValue	16	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_ctimer.h:492:20:CTIMER_StartTimer	16	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_gpio.h:173:24:GPIO_PinRead	24	static
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project3\drivers/fsl_iocon.h:143:22:IOCON_PinMuxSet	24	static
+../source/IR_Process.c:8:6:IR_Sniffer_Init	24	static
+../source/IR_Process.c:30:9:IR_Process_NonBlocking	40	static
