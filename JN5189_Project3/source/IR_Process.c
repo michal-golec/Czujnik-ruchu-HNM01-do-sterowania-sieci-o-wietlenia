@@ -3,6 +3,8 @@
 //zmienne do pilota
 uint32_t pulse_durations[MAX_IR_PULSES];
 volatile uint16_t pulse_index = 0;
+uint8_t current_state = 0;
+uint32_t current_time = 0;
 
 
 void IR_Sniffer_Init(void) {
@@ -23,19 +25,15 @@ void IR_Sniffer_Init(void) {
     CTIMER_StartTimer(CTIMER0);
 }
 
-// Zmienne globalne modułu IR (zakładam, że je masz)
-// uint32_t pulse_durations[MAX_IR_PULSES];
-// volatile uint16_t pulse_index = 0;
-
 int16_t IR_Process_NonBlocking(void) {
     static uint8_t last_pin_state = 1;
     static uint32_t last_edge_time = 0;
-
-    // Domyślny stan zwrotny - brak nowych danych
     int16_t received_command = IR_NO_DATA;
 
-    uint8_t current_state = GPIO_PinRead(GPIO, 0, 14);
-    uint32_t current_time = CTIMER_GetTimerCountValue(CTIMER0);
+    current_state = GPIO_PinRead(GPIO, 0, 14);
+    current_time = CTIMER_GetTimerCountValue(CTIMER0);
+
+
 
     // ===================================================
     // 1. ZBIERANIE CZASÓW ZBOCZY (NON-BLOCKING)
@@ -66,25 +64,25 @@ int16_t IR_Process_NonBlocking(void) {
 
             // Protokół NEC z adresem 16-bitowym wymaga 32 bitów danych.
             // 32 bity * 2 krawędzie = 64 impulsy + 4 na nagłówek = minimum 68 impulsów.
-            // Zabezpieczamy się przed ramkami powtórzeń i śmieciami (< 66 impulsów)
+            // Zabezpieczenie przed ramkami powtórzeń i śmieciami (< 66 impulsów)
             if (pulse_index >= 66) {
                 uint16_t address = 0;
                 uint8_t command = 0;
                 uint8_t inv_command = 0;
 
-                // A. Parsowanie adresu pilota (pierwsze 16 bitów / indeksy 4 do 34)
+                // Odczyt adresu pilota (pierwsze 16 bitów / indeksy 4 do 34)
                 for (uint16_t i = 0; i < 16; i++) {
                     address <<= 1;
                     if (pulse_durations[4 + (i * 2)] > 1500) address |= 1;
                 }
 
-                // B. Parsowanie komendy (kolejne 8 bitów / indeksy 36 do 50)
+                // Odczyt komendy (kolejne 8 bitów / indeksy 36 do 50)
                 for (uint16_t i = 0; i < 8; i++) {
                     command <<= 1;
                     if (pulse_durations[36 + (i * 2)] > 1500) command |= 1;
                 }
 
-                // C. Parsowanie negacji komendy (ostatnie 8 bitów / indeksy 52 do 66)
+                // Odczyt negacji komendy (ostatnie 8 bitów / indeksy 52 do 66)
                 for (uint16_t i = 0; i < 8; i++) {
                     inv_command <<= 1;
                     if (pulse_durations[52 + (i * 2)] > 1500) inv_command |= 1;
@@ -93,17 +91,182 @@ int16_t IR_Process_NonBlocking(void) {
                 // ===================================================
                 // 3. WALIDACJA DANYCH
                 // ===================================================
-                // Komenda musi być logicznym przeciwieństwem inv_command.
-                // Używamy sumy bitowej, aby zniwelować zakłócenia sprzętowe.
                 if ((address == IR_REMOTE_ADDRESS) && (command == (uint8_t)(~inv_command))) {
                     received_command = command; // Ramka prawidłowa!
                 }
             }
 
-            // Reset bufora przygotowujący na kolejne pakiety
+            else if (pulse_index >2 && pulse_index < 6) {
+            	received_command = IR_REPEAT;
+            }
+
             pulse_index = 0;
         }
     }
 
     return received_command;
 }
+
+
+
+
+void IR_Chosen_Switch_Action(int16_t ir_cmd){
+	static int16_t last_valid_command = IR_NO_DATA;
+	static bool waiting_for_repeat = false;
+	static uint32_t wait_start_time = 0;
+
+	if (ir_cmd != IR_REPEAT && ir_cmd != IR_NO_DATA){
+		last_valid_command = ir_cmd;
+
+		if (ir_cmd == 0xB8){
+			wait_start_time = CTIMER_GetTimerCountValue(CTIMER0);
+			waiting_for_repeat = true;
+		}
+		else {
+			switch (last_valid_command){
+				case 0x8:
+					PRINTF("ON\r\n");
+					break;
+				case 0x80:
+					PRINTF("Auto\r\n");
+					break;
+				case 0x60:
+					PRINTF("Reset\r\n");
+					break;
+				case 0x24:
+					PRINTF("Power%% up\r\n");
+					break;
+				case 0x44:
+					PRINTF("Power%% down\r\n");
+					break;
+				case 0x94:
+					PRINTF("Memory\r\n");
+					break;
+				case 0x90:
+					PRINTF("Detection Range 100%%\r\n");
+					break;
+				case 0xF8:
+					PRINTF("Detection Range 50%%\r\n");
+					break;
+				case 0xB0:
+					PRINTF("Detection Range 25%%\r\n");
+					break;
+				case 0x68:
+					PRINTF("Daylight sensor 1000lux\r\n");
+					break;
+				case 0x48:
+					PRINTF("Daylight sensor 500lux\r\n");
+					break;
+				case 0xE8:
+					PRINTF("Daylight sensor 400lux\r\n");
+					break;
+				case 0xA8:
+					PRINTF("Daylight sensor 300lux\r\n");
+					break;
+				case 0x88:
+					PRINTF("Daylight sensor 200lux\r\n");
+					break;
+				case 0xD8:
+					PRINTF("Daylight sensor 150lux\r\n");
+					break;
+				case 0x98:
+					PRINTF("Daylight sensor 100lux\r\n");
+					break;
+				case 0xB2:
+					PRINTF("Daylight sensor DISABLE\r\n");
+					break;
+				case 0x2:
+					PRINTF("Hold time TEST 3s\r\n");
+					break;
+				case 0x32:
+					PRINTF("Hold time 30s\r\n");
+					break;
+				case 0x50:
+					PRINTF("Hold time 90s\r\n");
+					break;
+				case 0x78:
+					PRINTF("Hold time 5min\r\n");
+					break;
+				case 0x38:
+					PRINTF("Hold time 10min\r\n");
+					break;
+				case 0x28:
+					PRINTF("Hold time 30min\r\n");
+					break;
+				case 0x20:
+					PRINTF("Dim off 10s\r\n");
+					break;
+				case 0x4:
+					PRINTF("Dim off 5min\r\n");
+					break;
+				case 0x70:
+					PRINTF("Dim off 10min\r\n");
+					break;
+				case 0x58:
+					PRINTF("Dim off 30min\r\n");
+					break;
+				case 0xF0:
+					PRINTF("Dim off 1h\r\n");
+					break;
+				case 0x30:
+					PRINTF("Dim off +INFINITY\r\n");
+					break;
+				case 0x40:
+					PRINTF("Dim level 0%%\r\n");
+					break;
+				case 0x12:
+					PRINTF("Dim level 10%%\r\n");
+					break;
+				case 0x2A:
+					PRINTF("Dim level 30%%\r\n");
+					break;
+				case 0xA0:
+					PRINTF("Dim level 50%%\r\n");
+					break;
+			}
+		}
+	}
+
+	else if (ir_cmd == IR_REPEAT && last_valid_command != IR_NO_DATA) {
+		if (waiting_for_repeat) {
+			waiting_for_repeat = false;
+			PRINTF("Detection Range 75%%\r\n");
+			// Tutaj logika dla 75%
+		} else {
+			// Zwykłe przytrzymanie innego przycisku
+//			PRINTF("Powtorzenie: 0x%02X\r\n", last_valid_command);
+			switch (last_valid_command){
+				case 0x24:
+					PRINTF("Power%% up\r\n");
+					break;
+				case 0x44:
+					PRINTF("Power%% down\r\n");
+					break;
+			}
+		}
+	}
+
+	if (waiting_for_repeat) {
+		current_time = CTIMER_GetTimerCountValue(CTIMER0);
+		uint32_t elapsed = (current_time >= wait_start_time) ?
+						   (current_time - wait_start_time) :
+						   (0xFFFFFFFF - wait_start_time + current_time + 1);
+		// Jeśli minęło 150 000 us (150 ms) i nie było powtórzenia - to jest Apply
+		if (elapsed > 150000) {
+			waiting_for_repeat = false;
+			PRINTF("Apply\r\n");
+			// Tutaj logika dla Apply
+		}
+	}
+
+
+
+
+
+}
+
+
+
+
+
+

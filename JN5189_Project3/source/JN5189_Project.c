@@ -15,7 +15,6 @@
 #define PROCESS_INTERVAL_MS 100 // Czas w milisekundach, co ile pobieramy dane z ADC (np. 10 ms)
 #define LED_ON_TIMEOUT_MS 5000 // Czas świecenie [ms]
 #define LED_STANDBY_TIMEOUT_MS 1800000 // Czas po którym przechodzi w MODE_STANDBY, gdy nie ma ruchu [ms] (1800000ms = 30min)
-#define SENSITIVITY_MARGIN 80
 #define SENSITIVITY_LEVEL_SIZE 5
 
 
@@ -153,16 +152,9 @@ int main(void) {
 
     	int16_t ir_cmd = IR_Process_NonBlocking();
     	// Reakcja tylko, gdy przyszedł autoryzowany i pełny pakiet
-		if (ir_cmd != IR_NO_DATA) {
-			PRINTF("\r\nOtrzymano komende od pilota: 0x%02X (%u)\r\n", ir_cmd, ir_cmd);
 
-			// Tutaj docelowo zrobisz logikę na switch-case
-			// switch (ir_cmd) {
-			//     case 0x45: // np. Przycisk ON
-			//         ...
-			//         break;
-			// }
-		}
+//		PRINTF("\r\nOtrzymano komende od pilota: 0x%02X (%u)\r\n", ir_cmd, ir_cmd);
+		IR_Chosen_Switch_Action(ir_cmd);
 
 
     	//sprawdzanie czy jest ruch
