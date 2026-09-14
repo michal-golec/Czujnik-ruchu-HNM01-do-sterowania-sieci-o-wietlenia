@@ -5,13 +5,13 @@ volatile uint32_t ledState = 0;
 volatile uint16_t ledTimeoutMs = 0;
 volatile uint16_t OffDelayTimer = 0;
 
-uint32_t printDelayCounter = 0;
+
 bool ledTimeoutRstFlag = false;
 bool OffToOnDeleyFlag = false;
 
 volatile uint32_t ledOffTimeout = 0;
 
-volatile uint32_t sensitivityCalibTimeout = 5000;
+
 
 
 volatile uint8_t currentPwmDuty = 0;  // 10-100%
@@ -85,19 +85,19 @@ void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity, int8_t trend) 
         	ledTimeoutRstFlag = true;
         }
     }
+//    PRINTF("%u\r\n", printDelayCounter);
 
-    printDelayCounter++;
-    if (printDelayCounter >= 10) {
+    printDelayCounter--;
+    if (printDelayCounter == 0) {
 
     	const char* dirStr = (trend == 1) ? "ZBLIZANIE" : ((trend == 2) ? "ODDALANIE" : "STABILNIE");
 
-//    	PRINTF("Wartosc = %u | Szum = %u | Prog = %u | Wypelnienie = %u | Czulosc = %u | Ruch = %s | \r\n",
-//			   finalVal, noiseFloor, dynamicThreshold, currentPwmDuty, sensitivity, dirStr);
+    	PRINTF("Wartosc = %u | Szum = %u | Prog = %u | Wypelnienie = %u | Czulosc = %u | Ruch = %s | ",
+			   finalVal, noiseFloor, dynamicThreshold, currentPwmDuty, sensitivity, dirStr);
 
-    	PRINTF("Wypelnienie = %u | Czulosc = %u | minDuty = %u | maxDuty = %u | Stan = %u | Max Czas swiecenia = %u\r\n",
-			   currentPwmDuty, sensitivity, minDuty, maxDuty, ledState, ledOnTimeout);
+//    	PRINTF("Wypelnienie = %u | Czulosc = %u | minDuty = %u | maxDuty = %u | Stan = %u | Max Czas swiecenia = %u\r\n",
+//			   currentPwmDuty, sensitivity, minDuty, maxDuty, ledState, ledOnTimeout);
 
-    	printDelayCounter = 0;
     }
 }
 
@@ -200,14 +200,4 @@ void LED_Fade_Action(uint8_t targetPwmDuty) {
 
 
 
-void Sensitivity_Calibration_Timer(bool senCalibEnable, uint32_t senCalibTimeStep, uint32_t senCalibStep){
-	if (senCalibEnable){
-		if (sensitivityCalibTimeout > 0) sensitivityCalibTimeout--;
-		else {
-			sensitivityCalibTimeout = senCalibTimeStep;
-			sensitivity = sensitivity - senCalibStep;
-			if (sensitivity == 0) sensitivity = SENSITIVITY_MARGIN;
-		}
-	}
-	else return;
-}
+

@@ -128,6 +128,7 @@ void IR_Chosen_Switch_Action(int16_t ir_cmd){
 					PRINTF("ON\r\n");
 					break;
 				case 0x80:
+					senCalibEnable = true;
 					PRINTF("Auto\r\n");
 					break;
 				case 0x60:

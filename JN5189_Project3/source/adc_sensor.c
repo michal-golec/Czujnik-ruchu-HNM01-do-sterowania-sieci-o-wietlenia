@@ -45,11 +45,15 @@ void ADC0_SEQA_IRQHandler(void) {
             filteredAdcValue = adcResultValue;
             isFirstSample = false;
         } else {
-            filteredAdcValue = ((filteredAdcValue * 63) + adcResultValue) >> 6;
+//            filteredAdcValue = ((filteredAdcValue * 63) + adcResultValue) >> 6;
+            filteredAdcValue = ((filteredAdcValue * 15) + adcResultValue) >> 4;
         }
 
         if (filteredAdcValue > maxValue) maxValue = filteredAdcValue;
         if (filteredAdcValue < minValue) minValue = filteredAdcValue;
+
+        //TODO: Może przenieść tu logikę obliczania finalVal, zrobić bufor i wysyłać paczki
+        //		do pętli głównej, może to będzie lepsze
     }
 }
 

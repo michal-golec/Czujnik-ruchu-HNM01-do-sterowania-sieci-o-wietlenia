@@ -8,21 +8,24 @@ C_SRCS += \
 ../source/JN5189_Project.c \
 ../source/adc_sensor.c \
 ../source/led_logic.c \
-../source/semihost_hardfault.c 
+../source/semihost_hardfault.c \
+../source/sen_Calib.c 
 
 C_DEPS += \
 ./source/IR_Process.d \
 ./source/JN5189_Project.d \
 ./source/adc_sensor.d \
 ./source/led_logic.d \
-./source/semihost_hardfault.d 
+./source/semihost_hardfault.d \
+./source/sen_Calib.d 
 
 OBJS += \
 ./source/IR_Process.o \
 ./source/JN5189_Project.o \
 ./source/adc_sensor.o \
 ./source/led_logic.o \
-./source/semihost_hardfault.o 
+./source/semihost_hardfault.o \
+./source/sen_Calib.o 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -37,7 +40,7 @@ source/%.o: ../source/%.c source/subdir.mk
 clean: clean-source
 
 clean-source:
-	-$(RM) ./source/IR_Process.d ./source/IR_Process.o ./source/JN5189_Project.d ./source/JN5189_Project.o ./source/adc_sensor.d ./source/adc_sensor.o ./source/led_logic.d ./source/led_logic.o ./source/semihost_hardfault.d ./source/semihost_hardfault.o
+	-$(RM) ./source/IR_Process.d ./source/IR_Process.o ./source/JN5189_Project.d ./source/JN5189_Project.o ./source/adc_sensor.d ./source/adc_sensor.o ./source/led_logic.d ./source/led_logic.o ./source/semihost_hardfault.d ./source/semihost_hardfault.o ./source/sen_Calib.d ./source/sen_Calib.o
 
 .PHONY: clean-source
 

@@ -12,13 +12,16 @@
 #define LED_PIN 19
 #define STARTUP_THRESHOLD 500
 #define PWM_PERIOD 1000
-#define SENSITIVITY_MARGIN 80
+
+
+
 
 extern uint32_t sensitivity;
 extern volatile uint32_t ledOffTimeout;
 extern volatile uint32_t ledOnTimeout;
 extern volatile uint8_t minDuty;
 extern volatile uint8_t maxDuty;
+extern uint32_t printDelayCounter;
 
 //void LED_Init_Custom(void);
 void PWM_Init_Custom(void);

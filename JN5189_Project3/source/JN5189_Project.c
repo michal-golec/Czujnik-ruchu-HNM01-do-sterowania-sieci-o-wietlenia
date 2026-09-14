@@ -9,19 +9,21 @@
 #include "adc_sensor.h"
 #include "led_logic.h"
 #include "IR_Process.h"
+#include "sen_Calib.h"
 
 #define FADE_TIME 3000 // rozjaśnienie [ms]
 #define OFF_TO_ON_DELAY 100
-#define PROCESS_INTERVAL_MS 100 // Czas w milisekundach, co ile pobieramy dane z ADC (np. 10 ms)
+#define PROCESS_INTERVAL_MS 50 // Czas w milisekundach, co ile pobieramy dane z ADC (np. 10 ms)
 #define LED_ON_TIMEOUT_MS 5000 // Czas świecenie [ms]
 #define LED_STANDBY_TIMEOUT_MS 1800000 // Czas po którym przechodzi w MODE_STANDBY, gdy nie ma ruchu [ms] (1800000ms = 30min)
 #define SENSITIVITY_LEVEL_SIZE 5
 
 
 // Nowe stałe do analizy obwiedni
-#define ENVELOPE_DECAY_RATE 15  // Szybkość opadania obwiedni (im wyższa, tym szybciej spada)
+#define ENVELOPE_DECAY_RATE 2  // Szybkość opadania obwiedni (im wyższa, tym szybciej spada)
 #define TREND_UP_MARGIN 20
 #define TREND_DOWN_MARGIN 5
+#define UART_PRINT_TIMEOUT 5
 
 ////
 
@@ -45,7 +47,7 @@ noiseFloor = ((noiseFloor * 15) + finalVal) / 16;
 
 
 volatile uint16_t fadeTime = FADE_TIME;
-volatile uint8_t minDuty = 10;
+volatile uint8_t minDuty = 30;
 volatile uint8_t maxDuty = 100;
 volatile uint16_t OffToOnDelay = OFF_TO_ON_DELAY;
 volatile uint16_t DataFreq = PROCESS_INTERVAL_MS;
@@ -71,6 +73,8 @@ SystemMode_t currentMode = MODE_NORMAL;
 uint32_t senCalibTimeStep = 3000; //[ms]
 uint32_t senCalibStep = 5;
 bool senCalibEnable = false;
+
+uint32_t printDelayCounter = UART_PRINT_TIMEOUT;
 
 
 
@@ -99,6 +103,8 @@ void SysTick_Handler(void) {
 	// ===================================================
 //	LED_StayOFF_Timeout(OffToOnDelay);
 
+
+	fadeTime = 0;	//<- To tylko do testów czułości TODO:Usunąć potem
 
 	//Zmiana wypelnienia PWM
 	// ===================================================
@@ -193,7 +199,7 @@ int main(void) {
 			// 2. FILTR DOLNOPRZEPUSTOWY OBWIEDNI (WYGŁADZANIE)
 			// ===================================================
 			static uint32_t filteredEnvelope = 0;
-			filteredEnvelope = ((filteredEnvelope * 7) + envelope) >> 3;
+			filteredEnvelope = ((filteredEnvelope * 63) + envelope) >> 6;
 
 			// ===================================================
 			// 3. DETEKCJA ZBLIŻANIA / ODDALANIA (TREND)
@@ -203,8 +209,8 @@ int main(void) {
 			int8_t trend = 0; // 1 = Zbliżanie, -1 = Oddalanie, 0 = Stabilnie
 
 			// fastAvg reaguje dynamicznie (okno ~4 próbki), slowAvg stanowi bazę (okno ~16 próbek)
-			fastAvg = ((fastAvg * 3) + filteredEnvelope) >> 2;
-			slowAvg = ((slowAvg * 15) + filteredEnvelope) >> 4;
+			fastAvg = ((fastAvg * 15) + filteredEnvelope) >> 4;
+			slowAvg = ((slowAvg * 63) + filteredEnvelope) >> 6;
 
 			if (fastAvg > (slowAvg + TREND_UP_MARGIN)) {
 				trend = 1;  // Zbliżanie
@@ -216,8 +222,11 @@ int main(void) {
 
 			Process_Sensor_Data(finalVal, sensitivity, trend);
 
-//			PRINTF("fastAvg = %u | slowAvg = %u | trend = %d | stan = %u\r\n",
-//						fastAvg, slowAvg, trend, ledState);
+			if (printDelayCounter == 0) {
+				PRINTF("fastAvg = %u | slowAvg = %u | trend = %d | stan = %u\r\n",
+							fastAvg, slowAvg, trend, ledState);
+				printDelayCounter = UART_PRINT_TIMEOUT;
+			}
 
 
 
@@ -235,7 +244,6 @@ int main(void) {
 					}
 					else if (senCalibEnable){
 						PRINTF("Kalibracja START!\r\n");
-						senCalibEnable = true;
 						currentMode = MODE_CALIBRATION;
 					}
 					break;
@@ -256,7 +264,6 @@ int main(void) {
 				case MODE_CALIBRATION:
 					minDuty = 0;
 					maxDuty = 100;
-					PRINTF("Calib...\r\n");
 					if (ledState == 1){
 						senCalibEnable = false;
 						PRINTF("Kalibracja zakonczona!\r\n");
