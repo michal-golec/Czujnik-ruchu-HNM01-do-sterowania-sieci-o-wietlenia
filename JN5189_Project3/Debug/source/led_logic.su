@@ -6,5 +6,5 @@ C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_P
 ../source/led_logic.c:122:6:LED_StayOFF_Timeout	16	static
 ../source/led_logic.c:135:6:LED_ToStandBy_Timeout	16	static
 ../source/led_logic.c:148:6:LED_Process_Fade	24	static
-../source/led_logic.c:168:6:LED_Fade_Action	16	static
-../source/led_logic.c:188:6:Sensitivity_Calibration_Timer	24	static
+../source/led_logic.c:168:6:LED_Fade_Action	32	static
+../source/led_logic.c:203:6:Sensitivity_Calibration_Timer	24	static

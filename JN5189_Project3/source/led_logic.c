@@ -175,9 +175,24 @@ void LED_Fade_Action(uint8_t targetPwmDuty) {
 	}
 	else return;
 
+
+	// wyliczamy nową wartość odcięcia  i aplikujemy ją do modułu:
+	// Rzutowanie na uint32_t zabezpiecza przed przepełnieniem podczas mnożenia
+	uint32_t perceived_pwm = 0;
+	if (currentPwmDuty > 0) {
+		// Próg zapłonu lampy (offset). Dostosuj tę wartość doświadczalnie.
+		// Zazwyczaj jest to 2% - 5% fizycznego PWM_PERIOD.
+		uint32_t min_visible_pwm = (PWM_PERIOD * 10) / 100; // Ustawione na 3%
+
+		// Dostępny fizyczny zakres sterowania (od progu zapłonu do maksimum)
+		uint32_t active_range = PWM_PERIOD - min_visible_pwm;
+
+		// Krzywa kwadratowa nałożona tylko na aktywny zakres zasilacza
+		perceived_pwm = min_visible_pwm + (((uint32_t)currentPwmDuty * currentPwmDuty * active_range) / 10000);
+	}
+
 	// Ponieważ JN5189 nie ma osobnej funkcji PWM_UpdatePwmDutycycle,
-	// wyliczamy nową wartość odcięcia (0 - 1000) i aplikujemy ją do modułu:
-	pwmChannelSetup.comp_val = (currentPwmDuty * PWM_PERIOD) / 100;
+	pwmChannelSetup.comp_val = (uint16_t)perceived_pwm;
 	PWM_SetupPwm(PWM, kPWM_Pwm0, &pwmChannelSetup);
 	PWM_SetupPwm(PWM, kPWM_Pwm3, &pwmChannelSetup);
 

@@ -135,6 +135,7 @@ void IR_Chosen_Switch_Action(int16_t ir_cmd){
 					minDuty = 10;
 					maxDuty = 100;
 					standByModeEnable = true;
+					ledStandByTimeout = 10000;
 					ledOnTimeout = 5000;
 					break;
 				case 0x24:
