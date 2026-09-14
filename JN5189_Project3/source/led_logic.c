@@ -4,9 +4,12 @@ uint32_t noiseFloor = STARTUP_THRESHOLD;
 volatile uint32_t ledState = 0;
 volatile uint16_t ledTimeoutMs = 0;
 volatile uint16_t OffDelayTimer = 0;
+
 uint32_t printDelayCounter = 0;
 bool ledTimeoutRstFlag = false;
 bool OffToOnDeleyFlag = false;
+
+volatile uint32_t ledOffTimeout = 0;
 
 volatile uint32_t sensitivityCalibTimeout = 5000;
 
@@ -84,18 +87,21 @@ void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity, int8_t trend) 
     }
 
     printDelayCounter++;
-    if (printDelayCounter >= 0) {
+    if (printDelayCounter >= 10) {
 
     	const char* dirStr = (trend == 1) ? "ZBLIZANIE" : ((trend == 2) ? "ODDALANIE" : "STABILNIE");
 
-//    	PRINTF("Wartosc = %u | Szum = %u | Prog = %u | Wypelnienie = %u | Czulosc = %u | Ruch = %s | ",
+//    	PRINTF("Wartosc = %u | Szum = %u | Prog = %u | Wypelnienie = %u | Czulosc = %u | Ruch = %s | \r\n",
 //			   finalVal, noiseFloor, dynamicThreshold, currentPwmDuty, sensitivity, dirStr);
+
+    	PRINTF("Wypelnienie = %u | Czulosc = %u | minDuty = %u | maxDuty = %u | Stan = %u | Max Czas swiecenia = %u\r\n",
+			   currentPwmDuty, sensitivity, minDuty, maxDuty, ledState, ledOnTimeout);
 
     	printDelayCounter = 0;
     }
 }
 
-void LED_Process_Timeout(uint16_t ledOnTimeout){
+void LED_Process_Timeout(uint32_t ledOnTimeout){
 	// ===================================================
 	// TIMER 1: Sterowanie czasem świecenia LED
 	// ===================================================
@@ -123,6 +129,18 @@ void LED_StayOFF_Timeout(uint16_t OffToOnDelay){
 	}
 	if (OffDelayTimer > 0) {
 		OffDelayTimer--;
+	}
+}
+
+void LED_ToStandBy_Timeout(uint32_t ledStandByTimeout){
+	// ===================================================
+	// TIMER 5: Delay po którym wchodzi w MODE_STANDBY
+	// ===================================================
+	if (ledState == 0){
+		if (ledOffTimeout > 0) ledOffTimeout--;
+	}
+	else {
+		ledOffTimeout = ledStandByTimeout;
 	}
 }
 

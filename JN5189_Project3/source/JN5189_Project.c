@@ -55,8 +55,9 @@ uint32_t sensitivityLevel[SENSITIVITY_LEVEL_SIZE] = {
 		40, 70, SENSITIVITY_MARGIN, 100, 120
 };
 
-volatile uint16_t ledOnTimeout = LED_ON_TIMEOUT_MS;
-volatile uint32_t ledOffTimeout = LED_STANDBY_TIMEOUT_MS;
+volatile uint32_t ledOnTimeout = LED_ON_TIMEOUT_MS;
+volatile uint32_t ledStandByTimeout = LED_STANDBY_TIMEOUT_MS;
+bool standByModeEnable = true;
 
 typedef enum {
     MODE_NORMAL,
@@ -83,13 +84,10 @@ void SysTick_Handler(void) {
 	/////////////////////////////////////////////////////////////
 
 
-	// Timer do standby
-	if (ledState == 0){
-		if (ledOffTimeout > 0) ledOffTimeout--;
-	}
-	else {
-		ledOffTimeout = LED_STANDBY_TIMEOUT_MS;
-	}
+	// ===================================================
+	// TIMER 5: Czas bezruchu, po którym wchodzi w MODE_STANDBY
+	// ===================================================
+	LED_ToStandBy_Timeout(ledStandByTimeout);
 
 	// ===================================================
 	// TIMER 2: Sterowanie częstością przetwarzania ADC
@@ -99,7 +97,7 @@ void SysTick_Handler(void) {
 	// ===================================================
 	// TIMER 3: Delay przed ponownym zapaleniem
 	// ===================================================
-	LED_StayOFF_Timeout(OffToOnDelay);
+//	LED_StayOFF_Timeout(OffToOnDelay);
 
 
 	//Zmiana wypelnienia PWM
@@ -228,11 +226,9 @@ int main(void) {
 			// ===================================================
 			switch (currentMode) {
 				case MODE_NORMAL:
-					minDuty = 10;
-					maxDuty = 100;
 					sensitivity = sensitivityLevel[2];
 
-					if (ledOffTimeout == 0) {
+					if (ledOffTimeout == 0 && standByModeEnable) {
 						currentMode = MODE_STANDBY;
 
 //						PRINTF("Brak ruchu przez 30 minut. Przejscie w STANDBY (0%%).\r\n");
@@ -250,6 +246,8 @@ int main(void) {
 					sensitivity = sensitivityLevel[1];
 
 					if (ledState == 1) {
+						minDuty = 10;
+						maxDuty = 100;
 						currentMode = MODE_NORMAL;
 //						PRINTF("Wykryto ruch! Powrot do NORMAL (10%%-100%%).\r\n");
 					}

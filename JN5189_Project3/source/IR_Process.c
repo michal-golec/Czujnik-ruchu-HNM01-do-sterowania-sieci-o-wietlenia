@@ -132,11 +132,17 @@ void IR_Chosen_Switch_Action(int16_t ir_cmd){
 					break;
 				case 0x60:
 					PRINTF("Reset\r\n");
+					minDuty = 10;
+					maxDuty = 100;
+					standByModeEnable = true;
+					ledOnTimeout = 5000;
 					break;
 				case 0x24:
+					//Obsługa w powtórzeniu (niżej)
 					PRINTF("Power%% up\r\n");
 					break;
 				case 0x44:
+					//Obsługa w powtórzeniu (niżej)
 					PRINTF("Power%% down\r\n");
 					break;
 				case 0x94:
@@ -176,51 +182,72 @@ void IR_Chosen_Switch_Action(int16_t ir_cmd){
 					PRINTF("Daylight sensor DISABLE\r\n");
 					break;
 				case 0x2:
+					ledOnTimeout = 3000;
 					PRINTF("Hold time TEST 3s\r\n");
 					break;
 				case 0x32:
+					ledOnTimeout = 30000;
 					PRINTF("Hold time 30s\r\n");
 					break;
 				case 0x50:
+					ledOnTimeout = 90000;
 					PRINTF("Hold time 90s\r\n");
 					break;
 				case 0x78:
+					ledOnTimeout = 5 * 60000;
 					PRINTF("Hold time 5min\r\n");
 					break;
 				case 0x38:
+					ledOnTimeout = 10 * 60000;
 					PRINTF("Hold time 10min\r\n");
 					break;
 				case 0x28:
+					ledOnTimeout = 30 * 60000;
 					PRINTF("Hold time 30min\r\n");
 					break;
 				case 0x20:
+					standByModeEnable = true;
+					ledStandByTimeout = 10000;
 					PRINTF("Dim off 10s\r\n");
 					break;
 				case 0x4:
+					standByModeEnable = true;
+					ledStandByTimeout = 5 * 60000;
 					PRINTF("Dim off 5min\r\n");
 					break;
 				case 0x70:
+					standByModeEnable = true;
+					ledStandByTimeout = 10 * 60000;
 					PRINTF("Dim off 10min\r\n");
 					break;
 				case 0x58:
+					standByModeEnable = true;
+					ledStandByTimeout = 30 * 60000;
 					PRINTF("Dim off 30min\r\n");
 					break;
 				case 0xF0:
+					standByModeEnable = true;
+					ledStandByTimeout = 60 * 60000;
 					PRINTF("Dim off 1h\r\n");
 					break;
 				case 0x30:
+					standByModeEnable = false;
 					PRINTF("Dim off +INFINITY\r\n");
 					break;
 				case 0x40:
+					minDuty = 0;
 					PRINTF("Dim level 0%%\r\n");
 					break;
 				case 0x12:
+					minDuty = 10;
 					PRINTF("Dim level 10%%\r\n");
 					break;
 				case 0x2A:
+					minDuty = 30;
 					PRINTF("Dim level 30%%\r\n");
 					break;
 				case 0xA0:
+					minDuty = 50;
 					PRINTF("Dim level 50%%\r\n");
 					break;
 			}
@@ -237,9 +264,15 @@ void IR_Chosen_Switch_Action(int16_t ir_cmd){
 //			PRINTF("Powtorzenie: 0x%02X\r\n", last_valid_command);
 			switch (last_valid_command){
 				case 0x24:
+					if (maxDuty < 100){
+						maxDuty++;
+					}
 					PRINTF("Power%% up\r\n");
 					break;
 				case 0x44:
+					if (maxDuty > 0){
+						maxDuty--;
+					}
 					PRINTF("Power%% down\r\n");
 					break;
 			}
