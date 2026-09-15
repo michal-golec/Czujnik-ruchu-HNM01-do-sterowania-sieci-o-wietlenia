@@ -1,0 +1,17 @@
+../drivers/rom_api.h:187:20:ROM_GetFlash	24	static
+../drivers/fsl_flash.c:60:6:FLASH_Init	24	static
+../drivers/fsl_flash.c:85:6:FLASH_Powerdown	16	static
+../drivers/fsl_flash.c:102:5:FLASH_Wait	16	static
+../drivers/fsl_flash.c:121:5:FLASH_GetStatus	16	static
+../drivers/fsl_flash.c:136:5:FLASH_Erase	32	static
+../drivers/fsl_flash.c:183:5:FLASH_ErasePages	32	static
+../drivers/fsl_flash.c:201:5:FLASH_BlankCheck	24	static
+../drivers/fsl_flash.c:226:5:FLASH_MarginCheck	24	static
+../drivers/fsl_flash.c:252:5:FLASH_Program	40	static
+../drivers/fsl_flash.c:289:5:FLASH_Checksum	32	static
+../drivers/fsl_flash.c:323:5:FLASH_Read	32	static
+../drivers/fsl_flash.c:375:6:FLASH_SetReadMode	24	static
+../drivers/fsl_flash.c:403:6:FLASH_CalculateChecksum	32	static
+../drivers/fsl_flash.c:455:5:FLASH_ConfigPageVerifyPageChecksum	24	static
+../drivers/fsl_flash.c:482:5:FLASH_ConfigPageVerifyGpoChecksum	24	static
+../drivers/fsl_flash.c:509:6:FLASH_ConfigPageUpdate	32	static
