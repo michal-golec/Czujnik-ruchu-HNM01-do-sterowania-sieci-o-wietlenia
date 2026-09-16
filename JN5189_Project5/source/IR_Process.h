@@ -16,7 +16,7 @@ extern volatile uint8_t maxDuty;
 extern volatile uint32_t ledOnTimeout;
 extern volatile uint32_t ledStandByTimeout;
 extern bool standByModeEnable;
-extern bool senCalibEnable;
+extern volatile bool senCalibEnable;
 
 void IR_Sniffer_Init(void);
 int16_t IR_Process_NonBlocking(void);

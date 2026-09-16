@@ -17,14 +17,15 @@
 #define LED_ON_TIMEOUT_MS 5000 // Czas świecenie [ms]
 #define LED_STANDBY_TIMEOUT_MS 1800000 // Czas po którym przechodzi w MODE_STANDBY, gdy nie ma ruchu [ms] (1800000ms = 30min)
 #define SENSITIVITY_LEVEL_SIZE 5
-#define SENSITIVITY_MARGIN 20
+#define SENSITIVITY_MARGIN 30
 
 
 // Nowe stałe do analizy obwiedni
 #define ENVELOPE_DECAY_RATE 2  // Szybkość opadania obwiedni (im wyższa, tym szybciej spada)
 #define TREND_UP_MARGIN 20
 #define TREND_DOWN_MARGIN 5
-#define UART_PRINT_TIMEOUT 1
+#define UART_PRINT_TIMEOUT 10
+#define FILTR2_DOWNSTEP 5
 
 ////
 
@@ -55,9 +56,11 @@ volatile uint16_t DataFreq = PROCESS_INTERVAL_MS;
 uint32_t finalVal = 0;
 uint32_t Val = 0;
 uint32_t Val2 = 0;
+uint32_t filtr2DownStep = FILTR2_DOWNSTEP;
+uint32_t filtr2FallCouter = 0;
 uint32_t sensitivity = SENSITIVITY_MARGIN;
 uint32_t sensitivityLevel[SENSITIVITY_LEVEL_SIZE] = {
-		40, 70, SENSITIVITY_MARGIN, 100, 120
+		SENSITIVITY_MARGIN, 30, 40, 50, 60
 };
 
 volatile uint32_t ledOnTimeout = LED_ON_TIMEOUT_MS;
@@ -73,9 +76,8 @@ typedef enum {
 SystemMode_t currentMode = MODE_NORMAL;
 
 //zmienne do kalibracji
-uint32_t senCalibTimeStep = 3000; //[ms]
-uint32_t senCalibStep = 5;
-bool senCalibEnable = false;
+volatile uint32_t senCalibTimeout_ms = 20000; //[ms]
+volatile bool senCalibEnable = false;
 
 uint32_t printDelayCounter = UART_PRINT_TIMEOUT;
 
@@ -86,7 +88,7 @@ uint32_t printDelayCounter = UART_PRINT_TIMEOUT;
 void SysTick_Handler(void) {
 
 	//kalibracja sensitivity
-	Sensitivity_Calibration_Timer(senCalibEnable, senCalibTimeStep, senCalibStep);
+	Sensitivity_Calibration_Timer(&senCalibEnable, senCalibTimeout_ms);
 
 	/////////////////////////////////////////////////////////////
 
@@ -171,7 +173,6 @@ int main(void) {
     		__disable_irq();
     		uint32_t localMax = maxValue;
     		uint32_t localMin = minValue;
-    		uint32_t localRawVal = adcResultValue;
 
     		maxValue = 0;
     		minValue = 0xFFFFFFFF;
@@ -179,7 +180,21 @@ int main(void) {
 
 			Val = (localMax >= localMin) ? (localMax - localMin) : (localMin - localMax);
 //			Val2 = ((Val2 * 1) + Val) / 2;
-			finalVal = (Val >= finalVal) ? (finalVal = Val) : (finalVal = finalVal - 10);
+
+			//Filtr2 przeciw szybkiemu opadaniu
+			if (Val >= finalVal){
+				finalVal = Val;
+				filtr2DownStep = FILTR2_DOWNSTEP;
+				filtr2FallCouter = 0;
+			} else{
+				if (finalVal >= filtr2DownStep){
+					finalVal -= filtr2DownStep;
+					filtr2FallCouter++;
+					if (filtr2FallCouter > 10) filtr2DownStep += 10;
+				} else{
+					finalVal = 0;
+				}
+			}
 
 			// ===================================================
 			// 1. DETEKTOR OBWIEDNI (PEAK DETECTOR)
@@ -223,8 +238,8 @@ int main(void) {
 			Process_Sensor_Data(finalVal, sensitivity, trend);
 
 			if (printDelayCounter == 0) {
-				PRINTF("fastAvg = %u | slowAvg = %u | trend = %d | stan = %u\r\n",
-							localMax, localRawVal, trend, ledState);
+				PRINTF("fastAvg = %u | slowAvg = %u | trend = %d | stan = %u | Calib Time = %u | CalibMax = %u | CalibEnable = %d\r\n",
+							fastAvg, slowAvg, trend, ledState, senCalibTime_ms, CalibMaxVal, senCalibEnable);
 				printDelayCounter = UART_PRINT_TIMEOUT;
 			}
 
@@ -235,7 +250,7 @@ int main(void) {
 			// ===================================================
 			switch (currentMode) {
 				case MODE_NORMAL:
-					sensitivity = 30;
+					sensitivity = sensitivityLevel[0];
 
 					if (ledOffTimeout == 0 && standByModeEnable) {
 						currentMode = MODE_STANDBY;
@@ -257,26 +272,27 @@ int main(void) {
 						minDuty = 10;
 						maxDuty = 100;
 						currentMode = MODE_NORMAL;
-//						PRINTF("Wykryto ruch! Powrot do NORMAL (10%%-100%%).\r\n");
 					}
 					break;
 
 				case MODE_CALIBRATION:
 					minDuty = 0;
 					maxDuty = 100;
-					if (ledState == 1){
-						senCalibEnable = false;
+					if (senCalibEnable == false){
 						PRINTF("Kalibracja zakonczona!\r\n");
 						PRINTF("Ustalone poziomy czulosci:\r\n");
 						for (int i = 0; i < SENSITIVITY_LEVEL_SIZE; i++){
-							sensitivityLevel[i] = sensitivity + senCalibStep; //najniższy sensitivityLevel to ostatni przed zapaleniem
+							sensitivityLevel[i] = sensitivity; //najniższy sensitivityLevel to ostatni przed zapaleniem
 							sensitivity = sensitivity + 10;
 							PRINTF("%u, ", sensitivityLevel[i]);
 						}
 						PRINTF("\r\n");
 						CLOCK_uDelay(4000000);
 						currentMode = MODE_NORMAL;
+						minDuty = 10;
+						maxDuty = 100;
 					}
+					break;
 
 
 

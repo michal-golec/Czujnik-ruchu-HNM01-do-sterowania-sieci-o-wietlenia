@@ -22,6 +22,8 @@ extern volatile uint32_t ledOnTimeout;
 extern volatile uint8_t minDuty;
 extern volatile uint8_t maxDuty;
 extern uint32_t printDelayCounter;
+extern volatile uint32_t ledState;
+extern volatile uint32_t noiseFloor;
 
 //void LED_Init_Custom(void);
 void PWM_Init_Custom(void);
@@ -31,9 +33,6 @@ void LED_Process_Timeout(uint32_t ledOnTimeout);
 void LED_StayOFF_Timeout(uint16_t OffToOnDelay);
 void LED_ToStandBy_Timeout(uint32_t ledStandByTimeout);
 void LED_Process_Fade(uint8_t minDuty, uint8_t maxDuty, uint16_t fadeTime);
-void Sensitivity_Calibration_Timer(bool senCalibEnable, uint32_t senCalibTimeStep, uint32_t senCalibStep);
-
-extern volatile uint32_t ledState;
 
 
 #endif

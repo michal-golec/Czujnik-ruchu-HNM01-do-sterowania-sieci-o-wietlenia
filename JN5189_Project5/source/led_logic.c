@@ -1,6 +1,6 @@
 #include "led_logic.h"
 
-uint32_t noiseFloor = STARTUP_THRESHOLD;
+volatile uint32_t noiseFloor = STARTUP_THRESHOLD;
 volatile uint32_t ledState = 0;
 volatile uint16_t ledTimeoutMs = 0;
 volatile uint16_t OffDelayTimer = 0;
