@@ -1,4 +1,5 @@
 #include "IR_Process.h"
+#include "led_logic.h"
 
 //zmienne do pilota
 uint32_t pulse_durations[MAX_IR_PULSES];
@@ -166,6 +167,10 @@ void IR_Chosen_Switch_Action(int16_t ir_cmd){
 					PRINTF("Daylight sensor 500lux\r\n");
 					break;
 				case 0xE8:
+					if (currentColorTemp > 0){
+						currentColorTemp--;
+					}
+					LED_Update_PWM_Hardware();
 					PRINTF("Daylight sensor 400lux\r\n");
 					break;
 				case 0xA8:
@@ -178,6 +183,10 @@ void IR_Chosen_Switch_Action(int16_t ir_cmd){
 					PRINTF("Daylight sensor 150lux\r\n");
 					break;
 				case 0x98:
+					if (currentColorTemp < 100){
+						currentColorTemp++;
+					}
+					LED_Update_PWM_Hardware();
 					PRINTF("Daylight sensor 100lux\r\n");
 					break;
 				case 0xB2:
@@ -276,6 +285,20 @@ void IR_Chosen_Switch_Action(int16_t ir_cmd){
 						maxDuty--;
 					}
 					PRINTF("Power%% down\r\n");
+					break;
+				case 0x98:
+					if (currentColorTemp <= 100 - LED_TEMP_CHANGE_STEP){
+						currentColorTemp += LED_TEMP_CHANGE_STEP;
+					}
+					LED_Update_PWM_Hardware();
+					PRINTF("Daylight sensor 100lux\r\n");
+					break;
+				case 0xE8:
+					if (currentColorTemp >= LED_TEMP_CHANGE_STEP){
+						currentColorTemp -= LED_TEMP_CHANGE_STEP;
+					}
+					LED_Update_PWM_Hardware();
+					PRINTF("Daylight sensor 400lux\r\n");
 					break;
 			}
 		}

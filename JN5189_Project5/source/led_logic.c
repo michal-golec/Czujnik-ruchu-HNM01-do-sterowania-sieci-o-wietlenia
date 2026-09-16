@@ -2,6 +2,8 @@
 
 volatile uint32_t noiseFloor = STARTUP_THRESHOLD;
 volatile uint32_t ledState = 0;
+uint32_t crossCount = 0;
+
 volatile uint16_t ledTimeoutMs = 0;
 volatile uint16_t OffDelayTimer = 0;
 
@@ -19,6 +21,9 @@ volatile int8_t pwmDirection = 0;     // 1 = rozjaśnianie, -1 = ściemnianie, 0
 
 // Struktura konfiguracyjna, której będziemy używać do zmiany wypełnienia
 pwm_setup_t pwmChannelSetup;
+
+//zmienne do sterowania temperaturą barw
+volatile uint8_t currentColorTemp = 50;
 
 
 
@@ -75,10 +80,13 @@ void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity, int8_t trend) 
 
     if (ledState == 0) {
         noiseFloor = ((noiseFloor * 1) + finalVal) / 2;
-        if (finalVal > dynamicThreshold && OffDelayTimer == 0) {
-        	pwmDirection = 1; // Start rozjaśniania
-            ledState = 1;
-            ledTimeoutRstFlag = true;
+        if (finalVal > dynamicThreshold) {
+        	crossCount++;
+        	if (crossCount >= CROSS_COUNT_MARGINE){
+				pwmDirection = 1; // Start rozjaśniania
+				ledState = 1;
+				ledTimeoutRstFlag = true;
+        	}
         }
     } else {
         if (finalVal > dynamicThreshold) {
@@ -114,23 +122,24 @@ void LED_Process_Timeout(uint32_t ledOnTimeout){
 		if (ledTimeoutMs == 0) {
 			pwmDirection = -1; // Start ściemniania
 			ledState = 0;
+			crossCount = 0;
 			OffToOnDeleyFlag = true;	//start opóźnienia
 		}
 	}
 }
 
-void LED_StayOFF_Timeout(uint16_t OffToOnDelay){
-	// ===================================================
-	// TIMER 3: Delay przed ponownym zapaleniem
-	// ===================================================
-	if (OffToOnDeleyFlag){
-		OffToOnDeleyFlag = false;
-		OffDelayTimer = OffToOnDelay;
-	}
-	if (OffDelayTimer > 0) {
-		OffDelayTimer--;
-	}
-}
+//void LED_StayOFF_Timeout(uint16_t OffToOnDelay){
+//	// ===================================================
+//	// TIMER 3: Delay przed ponownym zapaleniem
+//	// ===================================================
+//	if (OffToOnDeleyFlag){
+//		OffToOnDeleyFlag = false;
+//		OffDelayTimer = OffToOnDelay;
+//	}
+//	if (OffDelayTimer > 0) {
+//		OffDelayTimer--;
+//	}
+//}
 
 void LED_ToStandBy_Timeout(uint32_t ledStandByTimeout){
 	// ===================================================
@@ -175,27 +184,34 @@ void LED_Fade_Action(uint8_t targetPwmDuty) {
 	}
 	else return;
 
+	LED_Update_PWM_Hardware();
 
-	// wyliczamy nową wartość odcięcia  i aplikujemy ją do modułu:
-	// Rzutowanie na uint32_t zabezpiecza przed przepełnieniem podczas mnożenia
-	uint32_t perceived_pwm = 0;
-	if (currentPwmDuty > 0) {
-		// Próg zapłonu lampy (offset). Dostosuj tę wartość doświadczalnie.
-		// Zazwyczaj jest to 2% - 5% fizycznego PWM_PERIOD.
-		uint32_t min_visible_pwm = (PWM_PERIOD * 10) / 100; // Ustawione na 3%
+}
 
-		// Dostępny fizyczny zakres sterowania (od progu zapłonu do maksimum)
-		uint32_t active_range = PWM_PERIOD - min_visible_pwm;
+void LED_Update_PWM_Hardware(void) {
+    uint32_t min_visible_pwm = (PWM_PERIOD * 10) / 100;
+    uint32_t active_range = PWM_PERIOD - min_visible_pwm;
+    uint32_t comp_warm = 0;
+    uint32_t comp_cold = 0;
 
-		// Krzywa kwadratowa nałożona tylko na aktywny zakres zasilacza
-		perceived_pwm = min_visible_pwm + (((uint32_t)currentPwmDuty * currentPwmDuty * active_range) / 10000);
-	}
+    if (currentPwmDuty > 0) {
+        uint32_t dutyCold = (currentPwmDuty * currentColorTemp) / 100;
+        uint32_t dutyWarm = (currentPwmDuty * (100 - currentColorTemp)) / 100;
 
-	// Ponieważ JN5189 nie ma osobnej funkcji PWM_UpdatePwmDutycycle,
-	pwmChannelSetup.comp_val = (uint16_t)perceived_pwm;
-	PWM_SetupPwm(PWM, kPWM_Pwm0, &pwmChannelSetup);
-	PWM_SetupPwm(PWM, kPWM_Pwm3, &pwmChannelSetup);
+        if (dutyWarm > 0) {
+            comp_warm = min_visible_pwm + ((dutyWarm * dutyWarm * active_range) / 10000);
+        }
+        if (dutyCold > 0) {
+            comp_cold = min_visible_pwm + ((dutyCold * dutyCold * active_range) / 10000);
+        }
+    }
 
+    // Rozdzielenie sprzętowe sygnałów PWM
+    pwmChannelSetup.comp_val = (uint16_t)comp_cold;
+    PWM_SetupPwm(PWM, kPWM_Pwm0, &pwmChannelSetup);
+
+    pwmChannelSetup.comp_val = (uint16_t)comp_warm;
+    PWM_SetupPwm(PWM, kPWM_Pwm3, &pwmChannelSetup);
 }
 
 

@@ -109,8 +109,6 @@ void SysTick_Handler(void) {
 //	LED_StayOFF_Timeout(OffToOnDelay);
 
 
-	fadeTime = 0;	//<- To tylko do testów czułości TODO:Usunąć potem
-
 	//Zmiana wypelnienia PWM
 	// ===================================================
 	// TIMER 4: Sterowanie czasem rozjaśnienia (zmiany wypełnienia PWM)
@@ -190,7 +188,7 @@ int main(void) {
 				if (finalVal >= filtr2DownStep){
 					finalVal -= filtr2DownStep;
 					filtr2FallCouter++;
-					if (filtr2FallCouter > 10) filtr2DownStep += 10;
+					if (filtr2FallCouter > 15) filtr2DownStep += 5;
 				} else{
 					finalVal = 0;
 				}

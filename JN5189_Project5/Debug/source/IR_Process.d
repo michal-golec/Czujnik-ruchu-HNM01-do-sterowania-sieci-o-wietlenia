@@ -18,7 +18,9 @@ source/IR_Process.o source/IR_Process.d: ../source/IR_Process.c \
  C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project5\utilities/fsl_debug_console.h \
  C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project5\drivers/fsl_common.h \
  C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project5\component\serial_manager/serial_manager.h \
- C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project5\component\serial_manager/serial_port_uart.h
+ C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project5\component\serial_manager/serial_port_uart.h \
+ ../source/led_logic.h \
+ C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project5\drivers/fsl_pwm.h
 ../source/IR_Process.h:
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project5\drivers/fsl_ctimer.h:
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project5\drivers/fsl_common.h:
@@ -39,3 +41,5 @@ C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_P
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project5\drivers/fsl_common.h:
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project5\component\serial_manager/serial_manager.h:
 C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project5\component\serial_manager/serial_port_uart.h:
+../source/led_logic.h:
+C:\NXP\mg_workspace\Czujnik-ruchu-HNM01-do-sterowania-sieci-o-wietlenia\JN5189_Project5\drivers/fsl_pwm.h:

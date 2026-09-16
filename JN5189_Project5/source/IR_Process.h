@@ -10,6 +10,7 @@
 #define IR_REMOTE_ADDRESS 0x1881
 #define IR_NO_DATA -1
 #define IR_REPEAT -2
+#define LED_TEMP_CHANGE_STEP 5
 
 extern volatile uint8_t minDuty;
 extern volatile uint8_t maxDuty;
