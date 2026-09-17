@@ -16,15 +16,14 @@
 #define PROCESS_INTERVAL_MS 100 // Czas w milisekundach, co ile pobieramy dane z ADC (np. 10 ms)
 #define LED_ON_TIMEOUT_MS 5000 // Czas świecenie [ms]
 #define LED_STANDBY_TIMEOUT_MS 1800000 // Czas po którym przechodzi w MODE_STANDBY, gdy nie ma ruchu [ms] (1800000ms = 30min)
-#define SENSITIVITY_LEVEL_SIZE 5
 #define SENSITIVITY_MARGIN 30
 
 
 // Nowe stałe do analizy obwiedni
 #define ENVELOPE_DECAY_RATE 2  // Szybkość opadania obwiedni (im wyższa, tym szybciej spada)
-#define TREND_UP_MARGIN 20
-#define TREND_DOWN_MARGIN 5
-#define UART_PRINT_TIMEOUT 10
+#define TREND_UP_MARGIN 30
+#define TREND_DOWN_MARGIN 30
+#define UART_PRINT_TIMEOUT 5
 #define FILTR2_DOWNSTEP 5
 
 ////
@@ -47,10 +46,6 @@ noiseFloor = ((noiseFloor * 15) + finalVal) / 16;
 
 ///////////////////////////////////////////////////////////////////////////////////*/
 
-
-volatile uint16_t fadeTime = FADE_TIME;
-volatile uint8_t minDuty = 30;
-volatile uint8_t maxDuty = 100;
 volatile uint16_t OffToOnDelay = OFF_TO_ON_DELAY;
 volatile uint16_t DataFreq = PROCESS_INTERVAL_MS;
 uint32_t finalVal = 0;
@@ -58,14 +53,7 @@ uint32_t Val = 0;
 uint32_t Val2 = 0;
 uint32_t filtr2DownStep = FILTR2_DOWNSTEP;
 uint32_t filtr2FallCouter = 0;
-uint32_t sensitivity = SENSITIVITY_MARGIN;
-uint32_t sensitivityLevel[SENSITIVITY_LEVEL_SIZE] = {
-		SENSITIVITY_MARGIN, 30, 40, 50, 60
-};
 
-volatile uint32_t ledOnTimeout = LED_ON_TIMEOUT_MS;
-volatile uint32_t ledStandByTimeout = LED_STANDBY_TIMEOUT_MS;
-bool standByModeEnable = true;
 
 typedef enum {
     MODE_NORMAL,
@@ -76,19 +64,29 @@ typedef enum {
 SystemMode_t currentMode = MODE_NORMAL;
 
 //zmienne do kalibracji
-volatile uint32_t senCalibTimeout_ms = 20000; //[ms]
-volatile bool senCalibEnable = false;
+volatile uint32_t senCalibTimeout_ms = 20000;
 
 uint32_t printDelayCounter = UART_PRINT_TIMEOUT;
 
-
+SystemSettings_t sysSettings = {
+	.ledStandByTimeout_ms = LED_STANDBY_TIMEOUT_MS,
+	.ledOnTimeout_ms = LED_ON_TIMEOUT_MS,
+	.currentColorTemp = 50,
+	.minDuty = 30,
+	.maxDuty = 100,
+	.fadeTime_ms = 1500,
+	.senCalibEnable = false,	////////////////////////tu ten wskaznik moze sie klucic ze struktura
+	.standByModeEnable = true,
+	.sensitivity = SENSITIVITY_MARGIN,
+	.sensitivityLevel = {25, SENSITIVITY_MARGIN, 35, 40, 45}
+};
 
 
 //przewanie do sterowania LED
 void SysTick_Handler(void) {
 
 	//kalibracja sensitivity
-	Sensitivity_Calibration_Timer(&senCalibEnable, senCalibTimeout_ms);
+	Sensitivity_Calibration_Timer(senCalibTimeout_ms);
 
 	/////////////////////////////////////////////////////////////
 
@@ -96,29 +94,25 @@ void SysTick_Handler(void) {
 	// ===================================================
 	// TIMER 5: Czas bezruchu, po którym wchodzi w MODE_STANDBY
 	// ===================================================
-	LED_ToStandBy_Timeout(ledStandByTimeout);
+	LED_ToStandBy_Timeout(sysSettings.ledStandByTimeout_ms);
 
 	// ===================================================
 	// TIMER 2: Sterowanie częstością przetwarzania ADC
 	// ===================================================
 	ADC_GetData_Frequence_Timeout(DataFreq);
 
-	// ===================================================
-	// TIMER 3: Delay przed ponownym zapaleniem
-	// ===================================================
-//	LED_StayOFF_Timeout(OffToOnDelay);
 
 
 	//Zmiana wypelnienia PWM
 	// ===================================================
 	// TIMER 4: Sterowanie czasem rozjaśnienia (zmiany wypełnienia PWM)
 	// ===================================================
-	LED_Process_Fade(minDuty, maxDuty, fadeTime);
+	LED_Process_Fade(sysSettings.minDuty, sysSettings.maxDuty, sysSettings.fadeTime_ms);
 
 	// ===================================================
 	// TIMER 1: Sterowanie czasem świecenia LED
 	// ===================================================
-	LED_Process_Timeout(ledOnTimeout);
+	LED_Process_Timeout(sysSettings.ledOnTimeout_ms);
 }
 
 
@@ -197,22 +191,22 @@ int main(void) {
 			// ===================================================
 			// 1. DETEKTOR OBWIEDNI (PEAK DETECTOR)
 			// ===================================================
-			static uint32_t envelope = 0;
-			if (finalVal > envelope) {
-				envelope = finalVal; // Błyskawiczny wzrost do szczytu fali
-			} else {
-				if (envelope > ENVELOPE_DECAY_RATE) {
-					envelope -= ENVELOPE_DECAY_RATE; // Łagodne opadanie
-				} else {
-					envelope = 0;
-				}
-			}
-
-			// ===================================================
-			// 2. FILTR DOLNOPRZEPUSTOWY OBWIEDNI (WYGŁADZANIE)
-			// ===================================================
-			static uint32_t filteredEnvelope = 0;
-			filteredEnvelope = ((filteredEnvelope * 63) + envelope) >> 6;
+//			static uint32_t envelope = 0;
+//			if (finalVal > envelope) {
+//				envelope = finalVal; // Błyskawiczny wzrost do szczytu fali
+//			} else {
+//				if (envelope > ENVELOPE_DECAY_RATE) {
+//					envelope -= ENVELOPE_DECAY_RATE; // Łagodne opadanie
+//				} else {
+//					envelope = 0;
+//				}
+//			}
+//
+//			// ===================================================
+//			// 2. FILTR DOLNOPRZEPUSTOWY OBWIEDNI (WYGŁADZANIE)
+//			// ===================================================
+//			static uint32_t filteredEnvelope = 0;
+//			filteredEnvelope = ((filteredEnvelope * 63) + envelope) >> 6;
 
 			// ===================================================
 			// 3. DETEKCJA ZBLIŻANIA / ODDALANIA (TREND)
@@ -222,22 +216,24 @@ int main(void) {
 			int8_t trend = 0; // 1 = Zbliżanie, -1 = Oddalanie, 0 = Stabilnie
 
 			// fastAvg reaguje dynamicznie (okno ~4 próbki), slowAvg stanowi bazę (okno ~16 próbek)
-			fastAvg = ((fastAvg * 15) + filteredEnvelope) >> 4;
-			slowAvg = ((slowAvg * 63) + filteredEnvelope) >> 6;
+			fastAvg = ((fastAvg * 3) + finalVal) / 4;
+			slowAvg = ((slowAvg * 15) + finalVal) / 16;
 
 			if (fastAvg > (slowAvg + TREND_UP_MARGIN)) {
 				trend = 1;  // Zbliżanie
-			} else if (fastAvg < (slowAvg - TREND_DOWN_MARGIN)) {
+			} else if ((fastAvg + TREND_UP_MARGIN) < slowAvg) {
 				trend = 2; // Oddalanie
+			} else {
+				trend = 0;
 			}
 
 
 
-			Process_Sensor_Data(finalVal, sensitivity, trend);
+			Process_Sensor_Data(finalVal, sysSettings.sensitivity, trend);
 
 			if (printDelayCounter == 0) {
-				PRINTF("fastAvg = %u | slowAvg = %u | trend = %d | stan = %u | Calib Time = %u | CalibMax = %u | CalibEnable = %d\r\n",
-							fastAvg, slowAvg, trend, ledState, senCalibTime_ms, CalibMaxVal, senCalibEnable);
+				PRINTF("fastAvg = %u | slowAvg = %u | trend = %d | stan = %u\r\n",
+							fastAvg, slowAvg, trend, ledState);
 				printDelayCounter = UART_PRINT_TIMEOUT;
 			}
 
@@ -248,47 +244,49 @@ int main(void) {
 			// ===================================================
 			switch (currentMode) {
 				case MODE_NORMAL:
-					sensitivity = sensitivityLevel[0];
 
-					if (ledOffTimeout == 0 && standByModeEnable) {
+
+					if (ledOffTimeCounter == 0 && sysSettings.standByModeEnable) {
 						currentMode = MODE_STANDBY;
 
 //						PRINTF("Brak ruchu przez 30 minut. Przejscie w STANDBY (0%%).\r\n");
 					}
-					else if (senCalibEnable){
+					else if (sysSettings.senCalibEnable){
 						PRINTF("Kalibracja START!\r\n");
 						currentMode = MODE_CALIBRATION;
 					}
 					break;
 
 				case MODE_STANDBY:
-					minDuty = 0;
-					maxDuty = 10;
-					sensitivity = 20;
+					sysSettings.minDuty = 0;
+					sysSettings.maxDuty = 10;
 
 					if (ledState == 1) {
-						minDuty = 10;
-						maxDuty = 100;
+						sysSettings.minDuty = 10;
+						sysSettings.maxDuty = 100;
 						currentMode = MODE_NORMAL;
 					}
 					break;
 
 				case MODE_CALIBRATION:
-					minDuty = 0;
-					maxDuty = 100;
-					if (senCalibEnable == false){
+					sysSettings.minDuty = 0;
+					sysSettings.maxDuty = 100;
+					if (sysSettings.senCalibEnable == false){
 						PRINTF("Kalibracja zakonczona!\r\n");
 						PRINTF("Ustalone poziomy czulosci:\r\n");
+						//poziomy czułości są ustawiane ze stałym odstępem co 5(wartość dobrana empirycznie)
+						//wynik kalibracji zapisywany na 2 pozycji listy z poziomami
 						for (int i = 0; i < SENSITIVITY_LEVEL_SIZE; i++){
-							sensitivityLevel[i] = sensitivity; //najniższy sensitivityLevel to ostatni przed zapaleniem
-							sensitivity = sensitivity + 10;
-							PRINTF("%u, ", sensitivityLevel[i]);
+							sysSettings.sensitivityLevel[i] = sysSettings.sensitivity - 5;
+							sysSettings.sensitivity += 5;
+							PRINTF("%u, ", sysSettings.sensitivityLevel[i]);
 						}
 						PRINTF("\r\n");
 						CLOCK_uDelay(4000000);
 						currentMode = MODE_NORMAL;
-						minDuty = 10;
-						maxDuty = 100;
+						sysSettings.minDuty = 10;
+						sysSettings.maxDuty = 100;
+						sysSettings.sensitivity = sysSettings.sensitivityLevel[1];
 					}
 					break;
 

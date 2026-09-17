@@ -11,7 +11,7 @@ volatile uint16_t OffDelayTimer = 0;
 bool ledTimeoutRstFlag = false;
 bool OffToOnDeleyFlag = false;
 
-volatile uint32_t ledOffTimeout = 0;
+volatile uint32_t ledOffTimeCounter = 0;
 
 
 
@@ -21,10 +21,6 @@ volatile int8_t pwmDirection = 0;     // 1 = rozjaśnianie, -1 = ściemnianie, 0
 
 // Struktura konfiguracyjna, której będziemy używać do zmiany wypełnienia
 pwm_setup_t pwmChannelSetup;
-
-//zmienne do sterowania temperaturą barw
-volatile uint8_t currentColorTemp = 50;
-
 
 
 void PWM_Init_Custom(void) {
@@ -79,7 +75,7 @@ void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity, int8_t trend) 
     uint32_t dynamicThreshold = noiseFloor + sensitivity;
 
     if (ledState == 0) {
-        noiseFloor = ((noiseFloor * 1) + finalVal) / 2;
+        noiseFloor = ((noiseFloor * 3) + finalVal) / 4;
         if (finalVal > dynamicThreshold) {
         	crossCount++;
         	if (crossCount >= CROSS_COUNT_MARGINE){
@@ -100,22 +96,22 @@ void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity, int8_t trend) 
 
     	const char* dirStr = (trend == 1) ? "ZBLIZANIE" : ((trend == 2) ? "ODDALANIE" : "STABILNIE");
 
-    	PRINTF("Wartosc = %u | Szum = %u | Prog = %u | Wypelnienie = %u | Czulosc = %u | Ruch = %s | ",
-			   finalVal, noiseFloor, dynamicThreshold, currentPwmDuty, sensitivity, dirStr);
+    	PRINTF("Wartosc = %u |Szum = %u |Prog = %u |Wypelnienie = %u |ColorTemp = %u |minD = %u |maxD = %u |fadeTime = %u |ONtime = %u |StBtime = %u |Czulosc = %u | ",
+			   finalVal, noiseFloor, dynamicThreshold, currentPwmDuty, sysSettings.currentColorTemp, sysSettings.minDuty, sysSettings.maxDuty, sysSettings.fadeTime_ms, sysSettings.ledOnTimeout_ms, sysSettings.ledStandByTimeout_ms, sysSettings.sensitivity);
 
 //    	PRINTF("Wypelnienie = %u | Czulosc = %u | minDuty = %u | maxDuty = %u | Stan = %u | Max Czas swiecenia = %u\r\n",
-//			   currentPwmDuty, sensitivity, minDuty, maxDuty, ledState, ledOnTimeout);
+//			   currentPwmDuty, sensitivity, minDuty, maxDuty, ledState, ledOnTimeout_ms);
 
     }
 }
 
-void LED_Process_Timeout(uint32_t ledOnTimeout){
+void LED_Process_Timeout(uint32_t ledOnTimeout_ms){
 	// ===================================================
 	// TIMER 1: Sterowanie czasem świecenia LED
 	// ===================================================
 	if (ledTimeoutRstFlag){
 		ledTimeoutRstFlag = false;
-		ledTimeoutMs = ledOnTimeout; //reset licznika
+		ledTimeoutMs = ledOnTimeout_ms; //reset licznika
 	}
 	if (ledTimeoutMs > 0) {
 		ledTimeoutMs--;
@@ -141,20 +137,20 @@ void LED_Process_Timeout(uint32_t ledOnTimeout){
 //	}
 //}
 
-void LED_ToStandBy_Timeout(uint32_t ledStandByTimeout){
+void LED_ToStandBy_Timeout(uint32_t ledStandByTimeout_ms){
 	// ===================================================
 	// TIMER 5: Delay po którym wchodzi w MODE_STANDBY
 	// ===================================================
 	if (ledState == 0){
-		if (ledOffTimeout > 0) ledOffTimeout--;
+		if (ledOffTimeCounter > 0) ledOffTimeCounter--;
 	}
 	else {
-		ledOffTimeout = ledStandByTimeout;
+		ledOffTimeCounter = ledStandByTimeout_ms;
 	}
 }
 
 
-void LED_Process_Fade(uint8_t minDuty, uint8_t maxDuty, uint16_t fadeTime){
+void LED_Process_Fade(uint8_t minDuty, uint8_t maxDuty, uint16_t fadeTime_ms){
 	// ===================================================
 	// TIMER 4: Sterowanie czasem rozjaśnienia (zmiany wypełnienia PWM)
 	// ===================================================
@@ -164,13 +160,13 @@ void LED_Process_Fade(uint8_t minDuty, uint8_t maxDuty, uint16_t fadeTime){
 	else if (ledState == 1) targetPwmDuty = maxDuty;
 
 
-	static uint16_t fadeTimeoutDivider = 0;
-	if (fadeTimeoutDivider > 0){
-		fadeTimeoutDivider--;
+	static uint16_t fadeTimeCounter = 0;
+	if (fadeTimeCounter > 0){
+		fadeTimeCounter--;
 	}
-	if (fadeTimeoutDivider == 0){
+	if (fadeTimeCounter == 0){
 		LED_Fade_Action(targetPwmDuty);
-		fadeTimeoutDivider = (fadeTime >= 100) ? (fadeTime / 100) : 1;
+		fadeTimeCounter = (fadeTime_ms >= 100) ? (fadeTime_ms / 100) : 1;
 	}
 }
 
@@ -195,8 +191,8 @@ void LED_Update_PWM_Hardware(void) {
     uint32_t comp_cold = 0;
 
     if (currentPwmDuty > 0) {
-        uint32_t dutyCold = (currentPwmDuty * currentColorTemp) / 100;
-        uint32_t dutyWarm = (currentPwmDuty * (100 - currentColorTemp)) / 100;
+        uint32_t dutyCold = (currentPwmDuty * sysSettings.currentColorTemp) / 100;
+        uint32_t dutyWarm = (currentPwmDuty * (100 - sysSettings.currentColorTemp)) / 100;
 
         if (dutyWarm > 0) {
             comp_warm = min_visible_pwm + ((dutyWarm * dutyWarm * active_range) / 10000);
@@ -207,10 +203,10 @@ void LED_Update_PWM_Hardware(void) {
     }
 
     // Rozdzielenie sprzętowe sygnałów PWM
-    pwmChannelSetup.comp_val = (uint16_t)comp_cold;
+    pwmChannelSetup.comp_val = (uint16_t)comp_warm;
     PWM_SetupPwm(PWM, kPWM_Pwm0, &pwmChannelSetup);
 
-    pwmChannelSetup.comp_val = (uint16_t)comp_warm;
+    pwmChannelSetup.comp_val = (uint16_t)comp_cold;
     PWM_SetupPwm(PWM, kPWM_Pwm3, &pwmChannelSetup);
 }
 

@@ -12,12 +12,9 @@
 #define IR_REPEAT -2
 #define LED_TEMP_CHANGE_STEP 5
 
-extern volatile uint8_t minDuty;
-extern volatile uint8_t maxDuty;
-extern volatile uint32_t ledOnTimeout;
-extern volatile uint32_t ledStandByTimeout;
-extern bool standByModeEnable;
-extern volatile bool senCalibEnable;
+
+
+
 
 void IR_Sniffer_Init(void);
 int16_t IR_Process_NonBlocking(void);

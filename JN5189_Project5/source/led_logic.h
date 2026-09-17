@@ -13,29 +13,36 @@
 #define STARTUP_THRESHOLD 500
 #define PWM_PERIOD 1000
 #define CROSS_COUNT_MARGINE 2
+#define SENSITIVITY_LEVEL_SIZE 5
+
+typedef struct {
+	volatile uint32_t ledOnTimeout_ms;
+	volatile uint32_t ledStandByTimeout_ms;
+    volatile uint8_t currentColorTemp;
+    volatile uint8_t minDuty;
+    volatile uint8_t maxDuty;
+    volatile uint16_t fadeTime_ms;
+    volatile bool senCalibEnable;
+    bool standByModeEnable;
+    uint32_t sensitivity;
+    uint32_t sensitivityLevel[SENSITIVITY_LEVEL_SIZE];
+} SystemSettings_t;
+
+extern SystemSettings_t sysSettings;
 
 
-
-
-extern uint32_t sensitivity;
-extern volatile uint32_t ledOffTimeout;
-extern volatile uint32_t ledOnTimeout;
-extern volatile uint8_t minDuty;
-extern volatile uint8_t maxDuty;
+extern volatile uint32_t ledOffTimeCounter;
 extern uint32_t printDelayCounter;
 extern volatile uint32_t ledState;
 extern volatile uint32_t noiseFloor;
 
-extern volatile uint8_t currentColorTemp;
 
-//void LED_Init_Custom(void);
 void PWM_Init_Custom(void);
 void LED_Fade_Action(uint8_t targetPwmDuty); // Funkcja do SysTicka
 void Process_Sensor_Data(uint32_t finalVal, uint32_t sensitivity, int8_t trend);
-void LED_Process_Timeout(uint32_t ledOnTimeout);
-//void LED_StayOFF_Timeout(uint16_t OffToOnDelay);
-void LED_ToStandBy_Timeout(uint32_t ledStandByTimeout);
-void LED_Process_Fade(uint8_t minDuty, uint8_t maxDuty, uint16_t fadeTime);
+void LED_Process_Timeout(uint32_t ledOnTimeout_ms);
+void LED_ToStandBy_Timeout(uint32_t ledStandByTimeout_ms);
+void LED_Process_Fade(uint8_t minDuty, uint8_t maxDuty, uint16_t fadeTime_ms);
 void LED_Update_PWM_Hardware(void);
 
 

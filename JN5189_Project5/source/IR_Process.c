@@ -125,21 +125,35 @@ void IR_Chosen_Switch_Action(int16_t ir_cmd){
 		}
 		else {
 			switch (last_valid_command){
+//##########################################################################
+////////////////////////////////////////////////////////////////////////////
+//Wolny przycisk
 				case 0x8:
 					PRINTF("ON\r\n");
 					break;
+
+////////////////////////////////////////////////////////////////////////////
+				//Uruchomienie kalibracji
 				case 0x80:
-					senCalibEnable = true;
+					sysSettings.senCalibEnable = true;
 					PRINTF("Auto\r\n");
 					break;
+
+////////////////////////////////////////////////////////////////////////////
+				//Przywrócenie do domyślnych ustawień
 				case 0x60:
+					sysSettings.minDuty = 10;
+					sysSettings.maxDuty = 100;
+					sysSettings.standByModeEnable = true;
+					sysSettings.ledStandByTimeout_ms = 30 * 60000;	// 30min
+					sysSettings.ledOnTimeout_ms = 5000;				// 5sec
+					sysSettings.fadeTime_ms = 1000;					// 1sec
+					sysSettings.sensitivity = sysSettings.sensitivityLevel[1];
 					PRINTF("Reset\r\n");
-					minDuty = 10;
-					maxDuty = 100;
-					standByModeEnable = true;
-					ledStandByTimeout = 10000;
-					ledOnTimeout = 5000;
 					break;
+
+////////////////////////////////////////////////////////////////////////////
+
 				case 0x24:
 					//Obsługa w powtórzeniu (niżej)
 					PRINTF("Power%% up\r\n");
@@ -148,30 +162,67 @@ void IR_Chosen_Switch_Action(int16_t ir_cmd){
 					//Obsługa w powtórzeniu (niżej)
 					PRINTF("Power%% down\r\n");
 					break;
+
+////////////////////////////////////////////////////////////////////////////
+//Wolny przycisk
 				case 0x94:
 					PRINTF("Memory\r\n");
 					break;
+
+////////////////////////////////////////////////////////////////////////////
+				//Sterownie poziomem czułości
+				//(przycisk 75% obsłużony niżej, bo jest zakodowany tym samym kodem co "Apply")
 				case 0x90:
+					sysSettings.sensitivity = sysSettings.sensitivityLevel[0];
 					PRINTF("Detection Range 100%%\r\n");
 					break;
 				case 0xF8:
+					sysSettings.sensitivity = sysSettings.sensitivityLevel[2];
 					PRINTF("Detection Range 50%%\r\n");
 					break;
 				case 0xB0:
+					sysSettings.sensitivity = sysSettings.sensitivityLevel[3];
 					PRINTF("Detection Range 25%%\r\n");
 					break;
-				case 0x68:
-					PRINTF("Daylight sensor 1000lux\r\n");
-					break;
-				case 0x48:
-					PRINTF("Daylight sensor 500lux\r\n");
+
+////////////////////////////////////////////////////////////////////////////
+				//Strerowanie Temperaturą barwową lampy
+				case 0x98:
+					if (sysSettings.currentColorTemp < 100){
+						sysSettings.currentColorTemp++;
+					}
+					LED_Update_PWM_Hardware();
+					PRINTF("Daylight sensor 100lux\r\n");
 					break;
 				case 0xE8:
-					if (currentColorTemp > 0){
-						currentColorTemp--;
+					if (sysSettings.currentColorTemp > 0){
+						sysSettings.currentColorTemp--;
 					}
 					LED_Update_PWM_Hardware();
 					PRINTF("Daylight sensor 400lux\r\n");
+					break;
+
+				//Sterowanie czasem rozświetlania
+				case 0xD8:
+					if (sysSettings.fadeTime_ms < 5000){
+						sysSettings.fadeTime_ms += 250;
+					}
+					PRINTF("Daylight sensor 150lux\r\n");
+					break;
+				case 0x48:
+					if (sysSettings.fadeTime_ms > 0){
+						sysSettings.fadeTime_ms -= 250;
+					}
+					PRINTF("Daylight sensor 500lux\r\n");
+					break;
+				case 0xB2:
+					sysSettings.fadeTime_ms = 0;
+					PRINTF("Daylight sensor DISABLE\r\n");
+					break;
+
+
+				case 0x68:
+					PRINTF("Daylight sensor 1000lux\r\n");
 					break;
 				case 0xA8:
 					PRINTF("Daylight sensor 300lux\r\n");
@@ -179,88 +230,87 @@ void IR_Chosen_Switch_Action(int16_t ir_cmd){
 				case 0x88:
 					PRINTF("Daylight sensor 200lux\r\n");
 					break;
-				case 0xD8:
-					PRINTF("Daylight sensor 150lux\r\n");
-					break;
-				case 0x98:
-					if (currentColorTemp < 100){
-						currentColorTemp++;
-					}
-					LED_Update_PWM_Hardware();
-					PRINTF("Daylight sensor 100lux\r\n");
-					break;
-				case 0xB2:
-					PRINTF("Daylight sensor DISABLE\r\n");
-					break;
+
+////////////////////////////////////////////////////////////////////////////
+				//Sterowanie czasem świecenia
 				case 0x2:
-					ledOnTimeout = 3000;
+					sysSettings.ledOnTimeout_ms = 3000;
 					PRINTF("Hold time TEST 3s\r\n");
 					break;
 				case 0x32:
-					ledOnTimeout = 30000;
+					sysSettings.ledOnTimeout_ms = 30000;
 					PRINTF("Hold time 30s\r\n");
 					break;
 				case 0x50:
-					ledOnTimeout = 90000;
+					sysSettings.ledOnTimeout_ms = 90000;
 					PRINTF("Hold time 90s\r\n");
 					break;
 				case 0x78:
-					ledOnTimeout = 5 * 60000;
+					sysSettings.ledOnTimeout_ms = 5 * 60000;
 					PRINTF("Hold time 5min\r\n");
 					break;
 				case 0x38:
-					ledOnTimeout = 10 * 60000;
+					sysSettings.ledOnTimeout_ms = 10 * 60000;
 					PRINTF("Hold time 10min\r\n");
 					break;
 				case 0x28:
-					ledOnTimeout = 30 * 60000;
+					sysSettings.ledOnTimeout_ms = 30 * 60000;
 					PRINTF("Hold time 30min\r\n");
 					break;
+
+////////////////////////////////////////////////////////////////////////////
+				//Sterowanie czasem po jakim wchodzi lampa w uśpienie(wygaszenie do 0%)
 				case 0x20:
-					standByModeEnable = true;
-					ledStandByTimeout = 10000;
+					sysSettings.standByModeEnable = true;
+					sysSettings.ledStandByTimeout_ms = 10000;
 					PRINTF("Dim off 10s\r\n");
 					break;
 				case 0x4:
-					standByModeEnable = true;
-					ledStandByTimeout = 5 * 60000;
+					sysSettings.standByModeEnable = true;
+					sysSettings.ledStandByTimeout_ms = 5 * 60000;
 					PRINTF("Dim off 5min\r\n");
 					break;
 				case 0x70:
-					standByModeEnable = true;
-					ledStandByTimeout = 10 * 60000;
+					sysSettings.standByModeEnable = true;
+					sysSettings.ledStandByTimeout_ms = 10 * 60000;
 					PRINTF("Dim off 10min\r\n");
 					break;
 				case 0x58:
-					standByModeEnable = true;
-					ledStandByTimeout = 30 * 60000;
+					sysSettings.standByModeEnable = true;
+					sysSettings.ledStandByTimeout_ms = 30 * 60000;
 					PRINTF("Dim off 30min\r\n");
 					break;
 				case 0xF0:
-					standByModeEnable = true;
-					ledStandByTimeout = 60 * 60000;
+					sysSettings.standByModeEnable = true;
+					sysSettings.ledStandByTimeout_ms = 60 * 60000;
 					PRINTF("Dim off 1h\r\n");
 					break;
 				case 0x30:
-					standByModeEnable = false;
+					sysSettings.standByModeEnable = false;
 					PRINTF("Dim off +INFINITY\r\n");
 					break;
+
+////////////////////////////////////////////////////////////////////////////
+				//Sterowanie poziomem do którego przygasa lampa
 				case 0x40:
-					minDuty = 0;
+					sysSettings.minDuty = 0;
 					PRINTF("Dim level 0%%\r\n");
 					break;
 				case 0x12:
-					minDuty = 10;
+					sysSettings.minDuty = 10;
 					PRINTF("Dim level 10%%\r\n");
 					break;
 				case 0x2A:
-					minDuty = 30;
+					sysSettings.minDuty = 30;
 					PRINTF("Dim level 30%%\r\n");
 					break;
 				case 0xA0:
-					minDuty = 50;
+					sysSettings.minDuty = 50;
 					PRINTF("Dim level 50%%\r\n");
 					break;
+
+////////////////////////////////////////////////////////////////////////////
+//##########################################################################
 			}
 		}
 	}
@@ -268,38 +318,51 @@ void IR_Chosen_Switch_Action(int16_t ir_cmd){
 	else if (ir_cmd == IR_REPEAT && last_valid_command != IR_NO_DATA) {
 		if (waiting_for_repeat) {
 			waiting_for_repeat = false;
+
+
+			sysSettings.sensitivity = sysSettings.sensitivityLevel[1];
 			PRINTF("Detection Range 75%%\r\n");
 			// Tutaj logika dla 75%
 		} else {
-			// Zwykłe przytrzymanie innego przycisku
-//			PRINTF("Powtorzenie: 0x%02X\r\n", last_valid_command);
+
+
+			// Obsługa powtórzeń innych przycisków
 			switch (last_valid_command){
+//##########################################################################
+////////////////////////////////////////////////////////////////////////////
+				//Sterowanie jasnością zapalonej lampy
 				case 0x24:
-					if (maxDuty < 100){
-						maxDuty++;
+					if (sysSettings.maxDuty < 100){
+						sysSettings.maxDuty++;
 					}
 					PRINTF("Power%% up\r\n");
 					break;
 				case 0x44:
-					if (maxDuty > 0){
-						maxDuty--;
+					if (sysSettings.maxDuty > 0){
+						sysSettings.maxDuty--;
 					}
 					PRINTF("Power%% down\r\n");
 					break;
+
+////////////////////////////////////////////////////////////////////////////
+				//Sterowanie temperaturą barwową lampy
 				case 0x98:
-					if (currentColorTemp <= 100 - LED_TEMP_CHANGE_STEP){
-						currentColorTemp += LED_TEMP_CHANGE_STEP;
+					if (sysSettings.currentColorTemp <= 100 - LED_TEMP_CHANGE_STEP){
+						sysSettings.currentColorTemp += LED_TEMP_CHANGE_STEP;
 					}
 					LED_Update_PWM_Hardware();
 					PRINTF("Daylight sensor 100lux\r\n");
 					break;
 				case 0xE8:
-					if (currentColorTemp >= LED_TEMP_CHANGE_STEP){
-						currentColorTemp -= LED_TEMP_CHANGE_STEP;
+					if (sysSettings.currentColorTemp >= LED_TEMP_CHANGE_STEP){
+						sysSettings.currentColorTemp -= LED_TEMP_CHANGE_STEP;
 					}
 					LED_Update_PWM_Hardware();
 					PRINTF("Daylight sensor 400lux\r\n");
 					break;
+
+////////////////////////////////////////////////////////////////////////////
+//##########################################################################
 			}
 		}
 	}
@@ -312,6 +375,7 @@ void IR_Chosen_Switch_Action(int16_t ir_cmd){
 		// Jeśli minęło 150 000 us (150 ms) i nie było powtórzenia - to jest Apply
 		if (elapsed > 150000) {
 			waiting_for_repeat = false;
+//Wolny przycisk
 			PRINTF("Apply\r\n");
 			// Tutaj logika dla Apply
 		}
