@@ -11,12 +11,12 @@
 #include "IR_Process.h"
 #include "sen_Calib.h"
 
-#define FADE_TIME 3000 // rozjaśnienie [ms]
+#define FADE_TIME 1000 // rozjaśnienie [ms]
 #define OFF_TO_ON_DELAY 100
 #define PROCESS_INTERVAL_MS 100 // Czas w milisekundach, co ile pobieramy dane z ADC (np. 10 ms)
 #define LED_ON_TIMEOUT_MS 5000 // Czas świecenie [ms]
 #define LED_STANDBY_TIMEOUT_MS 1800000 // Czas po którym przechodzi w MODE_STANDBY, gdy nie ma ruchu [ms] (1800000ms = 30min)
-#define SENSITIVITY_MARGIN 30
+#define SENSITIVITY_MARGIN 27
 
 
 // Nowe stałe do analizy obwiedni
@@ -24,7 +24,7 @@
 #define TREND_UP_MARGIN 30
 #define TREND_DOWN_MARGIN 30
 #define UART_PRINT_TIMEOUT 5
-#define FILTR2_DOWNSTEP 5
+#define FILTR2_DOWNSTEP 3
 
 ////
 
@@ -46,7 +46,6 @@ noiseFloor = ((noiseFloor * 15) + finalVal) / 16;
 
 ///////////////////////////////////////////////////////////////////////////////////*/
 
-volatile uint16_t OffToOnDelay = OFF_TO_ON_DELAY;
 volatile uint16_t DataFreq = PROCESS_INTERVAL_MS;
 uint32_t finalVal = 0;
 uint32_t Val = 0;
@@ -72,13 +71,13 @@ SystemSettings_t sysSettings = {
 	.ledStandByTimeout_ms = LED_STANDBY_TIMEOUT_MS,
 	.ledOnTimeout_ms = LED_ON_TIMEOUT_MS,
 	.currentColorTemp = 50,
-	.minDuty = 30,
+	.minDuty = 10,
 	.maxDuty = 100,
-	.fadeTime_ms = 1500,
+	.fadeTime_ms = FADE_TIME,
 	.senCalibEnable = false,	////////////////////////tu ten wskaznik moze sie klucic ze struktura
 	.standByModeEnable = true,
 	.sensitivity = SENSITIVITY_MARGIN,
-	.sensitivityLevel = {25, SENSITIVITY_MARGIN, 35, 40, 45}
+	.sensitivityLevel = {22, SENSITIVITY_MARGIN, 32, 37, 42}
 };
 
 
@@ -182,7 +181,7 @@ int main(void) {
 				if (finalVal >= filtr2DownStep){
 					finalVal -= filtr2DownStep;
 					filtr2FallCouter++;
-					if (filtr2FallCouter > 15) filtr2DownStep += 5;
+					if (filtr2FallCouter > 20) filtr2DownStep += 3;
 				} else{
 					finalVal = 0;
 				}
@@ -232,8 +231,8 @@ int main(void) {
 			Process_Sensor_Data(finalVal, sysSettings.sensitivity, trend);
 
 			if (printDelayCounter == 0) {
-				PRINTF("fastAvg = %u | slowAvg = %u | trend = %d | stan = %u\r\n",
-							fastAvg, slowAvg, trend, ledState);
+				PRINTF("filtr2DownStep = %u |fastAvg = %u | slowAvg = %u | trend = %d | stan = %u\r\n",
+						filtr2DownStep, fastAvg, slowAvg, trend, ledState);
 				printDelayCounter = UART_PRINT_TIMEOUT;
 			}
 
